@@ -87,29 +87,33 @@ LiftgateStudy/
 
 ---
 
-### W1.2 — BP_VRPawn
+### W1.2 — BP_VRPawn (Child of IsdkSamplePawn)
+
+> ADR-004 적용: `BP_VRPawn` 은 `IsdkSamplePawn` 의 child BP. Hand rig migrate 단계는 제거됨.
 
 **작업**:
-1. `Pawn` 기반 BP 생성, 이름 `BP_VRPawn`
-2. Component 구조:
+1. Content/Blueprints/ → 우클릭 → Blueprint Class → **Pick Parent Class**:
+   - "All Classes" 검색 → **`IsdkSamplePawn`** 선택
+   - 이름: `BP_VRPawn`
+2. Component 구조 (parent 상속분 + 추가):
    ```
-   BP_VRPawn (Pawn)
-   ├── DefaultSceneRoot
-   ├── VROrigin (SceneComponent)        ← Floor 기준 origin
-   │   ├── Camera (CameraComponent)     ← HMD
-   │   ├── HandRig_Left (ISDK)          ← Sample에서 가져옴
-   │   └── HandRig_Right (ISDK)         ← Sample에서 가져옴
-   └── (필요 시 추가 컴포넌트)
+   BP_VRPawn (IsdkSamplePawn)
+   ├── (parent에서 상속: HandRig_Left, HandRig_Right, Camera 등 — 직접 추가 금지)
+   └── WristUIAnchor (WidgetComponent, W1.5에서 활용)
+       └── parent: 좌측 hand mesh wrist socket
    ```
-3. BeginPlay에서:
-   - `Set Tracking Origin → Floor Level` 호출 (필수, R1)
-   - `Add Mapping Context (IMC_IsdkHand)` 호출
-4. ISDK Hand Rig prefab은 **Sample에서 복사**해서 사용 (자체 작성 금지, R5)
+3. BeginPlay override:
+   - `Set Tracking Origin → Floor Level` 호출 (필수, R1) — parent 호출 여부와 무관하게 명시
+   - parent BeginPlay 호출 (Add Call to Parent Function)
+   - 필요 시 `Add Mapping Context` 호출 (parent 가 이미 ISDK IMC 등록한다면 생략)
+4. ISDK Hand Rig는 parent (`IsdkSamplePawn`) 에서 이미 제공 — **자체 hand rig 작성 / migrate 금지** (R5, ADR-004)
 
-**검증**:
+**검증** (ADR-004 §Verification):
 - VR Preview → HMD 위치 = Camera 위치 일치
-- 손이 트래킹되어 화면에 보임
-- 손목 회전이 실제 손 회전 따라감
+- 양손 트래킹 정상, 손목 회전 / 손가락 굴곡 실시간 반영
+- Camera Z (mm) 가 평가자 실제 키 ± 5cm
+- Quest Guardian 재설정 후에도 floor 가 발 밑에 정확
+- 위 검증 실패 시 ADR-004 Option C (Migrate) 로 전환 검토
 
 ---
 

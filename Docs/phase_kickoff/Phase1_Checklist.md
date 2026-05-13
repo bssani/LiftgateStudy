@@ -54,49 +54,56 @@
 
 ---
 
-## W1.2 — BP_VRPawn
+## W1.2 — BP_VRPawn (Child of IsdkSamplePawn — ADR-004)
 
-### W1.2.1 — Pawn Blueprint 생성
+> ADR-004 적용: parent를 `IsdkSamplePawn` 으로 둠. Hand rig migrate 단계 삭제.
+> Parent BP 위치: `Plugins/OculusInteractionSamples/Content/Blueprints/IsdkSamplePawn.uasset`
 
-- [ ] Content/Blueprints/ → 우클릭 → Blueprint Class → Parent: **Pawn**
-- [ ] 이름: `BP_VRPawn`
+### W1.2.1 — Child Blueprint 생성
+
+- [ ] Content/Blueprints/ → 우클릭 → Blueprint Class → **All Classes** 검색창
+- [ ] **`IsdkSamplePawn`** 선택 → 이름: `BP_VRPawn`
+- [ ] (대안: Content Browser에서 `IsdkSamplePawn.uasset` 위에 우클릭 → "Create Child Blueprint Class")
 - [ ] 열기 → Class Defaults:
   - [ ] Auto Possess Player: **Player 0**
 
-### W1.2.2 — Component 구조
+### W1.2.2 — Component 구조 확인
 
-- [ ] Component 트리 구성:
+- [ ] Parent 상속 component 확인 (직접 추가 / 삭제 금지):
   ```
-  BP_VRPawn (Pawn)
-  └── DefaultSceneRoot
-      └── VROrigin (SceneComponent)        ← Floor 기준 origin
-          ├── Camera (CameraComponent)     ← HMD
-          ├── HandRig_Left  (ISDK)         ← Sample에서 Migrate
-          └── HandRig_Right (ISDK)         ← Sample에서 Migrate
+  BP_VRPawn (IsdkSamplePawn)
+  └── (parent: HandRig_Left, HandRig_Right, Camera, EnhancedInputComponent 등)
   ```
-- [ ] VROrigin: Add Component → Scene Component, 이름 `VROrigin`
-- [ ] Camera: VROrigin 하위에 CameraComponent, Lock to HMD = true (기본값 확인)
-- [ ] HandRig_Left / HandRig_Right: ISDK Sample 의 hand rig prefab 을 Migrate 로 가져와서 child component 로 배치 (R5)
+- [ ] Wrist UI attach point 추가 (W1.5에서 활용):
+  - [ ] Add Component → **WidgetComponent**, 이름 `WristUIAnchor`
+  - [ ] Parent socket: 좌측 hand mesh 의 wrist socket (ISDK Sample 의 hand mesh 표준 socket 이름 확인, 예: `wrist_l` 또는 `WristRoot_L`)
+  - [ ] Widget Class: (W1.5에서 `WBP_WristPanel` 지정)
+  - [ ] Draw Size: 200×150 (W1.5에서 조정)
+  - [ ] Initial Visibility: Hidden (W1.5의 dot product 조건에서 토글)
 
-### W1.2.3 — BeginPlay 로직
+### W1.2.3 — BeginPlay override
 
-- [ ] Event BeginPlay:
-  - [ ] **Set Tracking Origin** node → Floor Level (필수, R1)
-  - [ ] **Get Player Controller** → Cast to PlayerController → **Add Mapping Context** (IMC_IsdkHand, Priority 0)
-  - [ ] (선택) Debug print: "VRPawn BeginPlay OK"
+- [ ] Event BeginPlay 노드 추가 (My Blueprint → Functions → Override → BeginPlay)
+- [ ] **Add Call to Parent Function** 노드 먼저 배치 (parent 초기화 보장)
+- [ ] **Set Tracking Origin** node → `Floor Level` (필수, R1 — parent가 호출해도 명시)
+- [ ] (parent가 ISDK IMC 등록 안 하면) Get Player Controller → Cast to PlayerController → **Add Mapping Context** (IMC_IsdkHand, Priority 0)
+- [ ] (선택) Debug print: "BP_VRPawn BeginPlay OK, Floor Origin set"
 
 ### W1.2.4 — 변수 / Category
 
 - [ ] 변수 생성 시 Category 지정 (CLAUDE.md §6):
   - `Calibration`, `Mode`, `Zone`, `UI`, `Debug`
 
-### 검증
+### 검증 (ADR-004 §Verification)
 
 - [ ] W1.1.1로 돌아가서 BP_LiftgateStudyGameMode 의 Default Pawn Class = `BP_VRPawn` 설정
 - [ ] VR Preview → HMD 위치 = Camera 위치 일치 (헤드 움직임 따라감)
 - [ ] 양손이 트래킹되어 화면에 visible
 - [ ] 손목 회전이 실제 손 회전 따라감
 - [ ] 손가락 굴곡 (pinch, point, fist) 정상 표시
+- [ ] Camera world Z (mm) 가 평가자 실제 키 ± 5cm
+- [ ] Quest Guardian 재설정 후에도 floor 가 발 밑에 정확
+- [ ] 위 R1 검증 실패 시 → ADR-004 Option C (Migrate / duplicate) 로 전환 검토
 
 ---
 
