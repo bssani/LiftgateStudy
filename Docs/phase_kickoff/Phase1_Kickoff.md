@@ -56,9 +56,9 @@ LiftgateStudy/
 │   │   └── ADR_005_cpp_adoption.md
 │   └── lessons_learned/
 ├── Source/                            ← ADR-005, C++ module
-│   └── LiftgateStudy/
-│       ├── LiftgateStudy.Build.cs
-│       ├── LiftgateStudy.h / .cpp
+│   └── LiftGateStudy/
+│       ├── LiftGateStudy.Build.cs
+│       ├── LiftGateStudy.h / .cpp
 │       ├── Public/
 │       │   ├── LiftgateStudyGameMode.h
 │       │   ├── Calibration/
@@ -101,8 +101,8 @@ LiftgateStudy/
 1. **C++ Module 부트스트랩** (최초 1회):
    - UE Editor → Tools → **New C++ Class** → `GameModeBase` parent → 이름 `LiftgateStudyGameMode`
    - 첫 C++ 클래스 생성 시 UE 가 자동으로:
-     - `Source/LiftgateStudy/` 디렉토리 생성
-     - `LiftgateStudy.Build.cs`, `LiftgateStudy.h/.cpp` 생성
+     - `Source/LiftGateStudy/` 디렉토리 생성
+     - `LiftGateStudy.Build.cs`, `LiftGateStudy.h/.cpp` 생성
      - `.uproject` 에 `Modules` 항목 추가
    - VS 2022 가 자동으로 sln 생성 후 컴파일 → 성공 확인
 2. **`.Build.cs` 의존성 추가**:
@@ -126,7 +126,7 @@ LiftgateStudy/
 
 **검증**:
 - C++ 모듈 컴파일 성공 (VS 2022 빌드 OK)
-- `.uproject` 에 `"Modules": [{"Name": "LiftgateStudy", ...}]` 추가 확인
+- `.uproject` 에 `"Modules": [{"Name": "LiftGateStudy", ...}]` 추가 확인
 - 프로젝트 실행 → 에러 없이 빈 Level 진입
 - VR Preview 진입 가능
 
@@ -192,12 +192,12 @@ LiftgateStudy/
 **작업**:
 
 #### W1.4.A — C++: ECalibrationStatus
-- `Source/LiftgateStudy/Public/Calibration/CalibrationTypes.h`
+- `Source/LiftGateStudy/Public/Calibration/CalibrationTypes.h`
 - `UENUM(BlueprintType)` 으로 `ECalibrationStatus { Checking, Pass, Fail }` 정의
 - (선택) `FCalibrationFailReason` 텍스트 enum
 
 #### W1.4.B — C++: UCalibrationCheckWidget
-- `Source/LiftgateStudy/Public/Calibration/CalibrationCheckWidget.h/.cpp`
+- `Source/LiftGateStudy/Public/Calibration/CalibrationCheckWidget.h/.cpp`
 - Base: `UUserWidget`, `UCLASS(Abstract, BlueprintType, Blueprintable)`
 - UPROPERTY (Category="Calibration", EditAnywhere, BlueprintReadWrite):
   - `float HMDHeightMin_mm = 1400.f;`
@@ -222,7 +222,7 @@ LiftgateStudy/
   - `|FloorZ_mm| > FloorZTolerance_mm` 또는 hit 없음: "Floor not detected at Z=0. Re-do boundary."
 
 #### W1.4.C — C++: ACalibrationGateActor
-- `Source/LiftgateStudy/Public/Calibration/CalibrationGateActor.h/.cpp`
+- `Source/LiftGateStudy/Public/Calibration/CalibrationGateActor.h/.cpp`
 - Base: `AActor`, `UCLASS(Blueprintable)`
 - Components:
   - `UWidgetComponent* CalibrationWidgetComp` (root child)
@@ -282,7 +282,7 @@ LiftgateStudy/
 **작업**:
 
 #### W1.5.A — C++: UWristPanelWidget
-- `Source/LiftgateStudy/Public/UI/WristPanelWidget.h/.cpp`
+- `Source/LiftGateStudy/Public/UI/WristPanelWidget.h/.cpp`
 - Base: `UUserWidget`, `UCLASS(Abstract, BlueprintType, Blueprintable)`
 - UPROPERTY (Category="UI", EditAnywhere, BlueprintReadWrite):
   - `float WristVisibleDotThreshold = 0.5f;`
@@ -365,7 +365,7 @@ LiftgateStudy/
 Phase 1 완료 시점 산출물:
 
 1. **UE 프로젝트 `LiftgateStudy/`** — 위 폴더 구조대로 (Source/ + Content/ + Docs/)
-2. **컴파일되는 C++ 모듈** (`LiftgateStudy`):
+2. **컴파일되는 C++ 모듈** (`LiftGateStudy`):
    - `ALiftgateStudyGameMode`
    - `UCalibrationCheckWidget`, `ACalibrationGateActor`, `ECalibrationStatus`
    - `UWristPanelWidget`
@@ -392,7 +392,7 @@ Phase 1 완료 보고 시 사용자가 직접 확인할 항목:
 - [ ] 더미 차량 박스가 정상 비례 (어깨 높이쯤)
 - [ ] 차량 박스 바닥과 floor grid가 일치 (틈 없음)
 - [ ] 모든 Magic Number 가 C++ UPROPERTY 로 노출되어 BP child 에서 튜닝 가능 (ADR-005)
-- [ ] C++ 모듈 `LiftgateStudy` 가 VS 2022 에서 컴파일 통과
+- [ ] C++ 모듈 `LiftGateStudy` 가 VS 2022 에서 컴파일 통과
 - [ ] Live Coding 또는 Editor restart 컴파일 정상
 
 ---
