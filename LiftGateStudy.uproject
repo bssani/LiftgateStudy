@@ -3,6 +3,17 @@
 	"EngineAssociation": "5.5",
 	"Category": "",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "LiftgateStudy",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"UMG"
+			]
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "OpenXR",
