@@ -26,8 +26,8 @@
 - [ ] Parent: **GameModeBase** → Next
 - [ ] Name: `LiftgateStudyGameMode` (Public visibility)
 - [ ] Create Class → UE 가 다음을 자동 생성:
-  - `Source/LiftgateStudy/` 디렉토리
-  - `LiftgateStudy.Build.cs`, `LiftgateStudy.h/.cpp`
+  - `Source/LiftGateStudy/` 디렉토리
+  - `LiftGateStudy.Build.cs`, `LiftGateStudy.h/.cpp`
   - `LiftgateStudyGameMode.h/.cpp`
   - `.uproject` 에 `Modules` 항목 추가
 - [ ] VS 2022 가 sln 자동 생성 → 첫 컴파일 OK 확인
@@ -35,7 +35,7 @@
   ```json
   "Modules": [
     {
-      "Name": "LiftgateStudy",
+      "Name": "LiftGateStudy",
       "Type": "Runtime",
       "LoadingPhase": "Default"
     }
@@ -44,7 +44,7 @@
 
 ### W1.1.0.B — `.Build.cs` 의존성 추가
 
-- [ ] `Source/LiftgateStudy/LiftgateStudy.Build.cs` 열기 (VS 또는 텍스트 에디터)
+- [ ] `Source/LiftGateStudy/LiftGateStudy.Build.cs` 열기 (VS 또는 텍스트 에디터)
 - [ ] `PublicDependencyModuleNames` 에 다음 추가:
   ```csharp
   PublicDependencyModuleNames.AddRange(new string[] {
@@ -91,7 +91,7 @@
 
 ### 검증
 
-- [ ] C++ 모듈 `LiftgateStudy` VS 2022 컴파일 OK
+- [ ] C++ 모듈 `LiftGateStudy` VS 2022 컴파일 OK
 - [ ] `.uproject` 에 Modules 항목 추가됨
 - [ ] 프로젝트 실행 → 에러 없이 빈 Level 진입
 - [ ] VR Preview 진입 가능 (까만 화면이어도 OK, 다음 W에서 Pawn 추가)
@@ -240,7 +240,7 @@
 
 ### W1.4.A — C++: ECalibrationStatus enum
 
-- [ ] `Source/LiftgateStudy/Public/Calibration/CalibrationTypes.h` 새 파일
+- [ ] `Source/LiftGateStudy/Public/Calibration/CalibrationTypes.h` 새 파일
 - [ ] 내용:
   ```cpp
   #pragma once
@@ -259,7 +259,7 @@
 
 ### W1.4.B — C++: UCalibrationCheckWidget
 
-- [ ] `Source/LiftgateStudy/Public/Calibration/CalibrationCheckWidget.h` 새 파일
+- [ ] `Source/LiftGateStudy/Public/Calibration/CalibrationCheckWidget.h` 새 파일
 - [ ] Class declaration:
   ```cpp
   UCLASS(Abstract, BlueprintType, Blueprintable)
@@ -318,7 +318,7 @@
 
 ### W1.4.C — C++: ACalibrationGateActor
 
-- [ ] `Source/LiftgateStudy/Public/Calibration/CalibrationGateActor.h` 새 파일
+- [ ] `Source/LiftGateStudy/Public/Calibration/CalibrationGateActor.h` 새 파일
 - [ ] Class declaration:
   ```cpp
   UCLASS(Blueprintable)
@@ -412,7 +412,7 @@
 
 ### W1.5.A — C++: UWristPanelWidget
 
-- [ ] `Source/LiftgateStudy/Public/UI/WristPanelWidget.h` 새 파일
+- [ ] `Source/LiftGateStudy/Public/UI/WristPanelWidget.h` 새 파일
 - [ ] Class declaration:
   ```cpp
   UCLASS(Abstract, BlueprintType, Blueprintable)
@@ -504,7 +504,7 @@
 - [ ] 더미 차량 박스가 정상 비례 (어깨 높이쯤)
 - [ ] 차량 박스 바닥과 floor grid 가 일치 (틈 없음)
 - [ ] 모든 Magic Number 가 C++ UPROPERTY 로 노출, BP child 에서 default 조정 가능 (ADR-005)
-- [ ] `LiftgateStudy` C++ 모듈 VS 2022 컴파일 통과
+- [ ] `LiftGateStudy` C++ 모듈 VS 2022 컴파일 통과
 - [ ] Live Coding 또는 Editor restart 컴파일 정상
 
 ---

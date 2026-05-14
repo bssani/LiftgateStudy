@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright Notice: Internal evaluation tool. GMTCK PQDQ.
 
 using UnrealBuildTool;
 
@@ -7,17 +7,25 @@ public class LiftGateStudy : ModuleRules
 	public LiftGateStudy(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		// CLAUDE.md §6 / ADR-005: C++ widget + ISDK input + HMD location 사용
+		PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"EnhancedInput",
+			"UMG",
+			"Slate",
+			"SlateCore",
+			"HeadMountedDisplay"
+		});
 
-		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		
-		// Uncomment if you are using online features
-		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			// ISDK / Meta XR API 를 직접 호출하게 되면 여기 추가:
+			// "OculusXRHMD", "MetaXRInteraction" 등 (ADR-001, R5)
+		});
 	}
 }

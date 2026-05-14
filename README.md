@@ -33,7 +33,7 @@ See `Docs/Project_Setup_Prompt.md` for full setup details (Step A + Step B).
 
 ### C++ Module
 
-본 프로젝트는 **C++ 로직 + BP 레이아웃 hybrid** 패턴을 사용 (ADR-005). 새 로직은 `Source/LiftgateStudy/` 에 C++ class 로 작성하고, BP child 가 layout / Designer-tunable default 를 담당함. 자세한 내용은 `Docs/decisions/ADR_005_cpp_adoption.md` 참조.
+본 프로젝트는 **C++ 로직 + BP 레이아웃 hybrid** 패턴을 사용 (ADR-005). 새 로직은 `Source/LiftGateStudy/` 에 C++ class 로 작성하고, BP child 가 layout / Designer-tunable default 를 담당함. 자세한 내용은 `Docs/decisions/ADR_005_cpp_adoption.md` 참조.
 
 ## Documentation
 

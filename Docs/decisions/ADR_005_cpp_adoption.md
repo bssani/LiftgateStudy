@@ -81,10 +81,10 @@ ALiftgate (Phase 2)              BP_Liftgate
 LiftgateStudy/
 ├── LiftGateStudy.uproject              ← Modules entry 추가됨 (UE Editor 가 자동 생성)
 └── Source/
-    └── LiftgateStudy/
-        ├── LiftgateStudy.Build.cs
-        ├── LiftgateStudy.h
-        ├── LiftgateStudy.cpp
+    └── LiftGateStudy/
+        ├── LiftGateStudy.Build.cs
+        ├── LiftGateStudy.h
+        ├── LiftGateStudy.cpp
         ├── Public/
         │   ├── LiftgateStudyGameMode.h
         │   ├── Calibration/
@@ -112,7 +112,7 @@ PublicDependencyModuleNames.AddRange(new string[] {
 ## Verification
 
 - [ ] `LiftGateStudy.uproject` 에 `Modules` 항목 추가됨 (UE Editor → Tools → New C++ Class 첫 실행 시 자동)
-- [ ] `Source/LiftgateStudy/` 모듈이 컴파일됨 (VS 2022)
+- [ ] `Source/LiftGateStudy/` 모듈이 컴파일됨 (VS 2022)
 - [ ] 첫 C++ 클래스 (예: `ULiftgateStudyGameMode`) 가 BP child 와 연결 가능
 - [ ] Live Coding 동작 확인 또는 Editor restart 컴파일 동작 확인
 - [ ] CI / 빌드 환경 (있다면) 에서 C++ 컴파일 통과
