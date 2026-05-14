@@ -1,7 +1,6 @@
-// Copyright Notice: Internal evaluation tool. GMTCK PQDQ.
+// Fill out your copyright notice in the Description page of Project Settings.
 
-#include "LiftgateStudy.h"
+#include "LiftGateStudy.h"
 #include "Modules/ModuleManager.h"
 
-// Primary game module 등록 — 본 모듈이 .uproject 의 LoadingPhase=Default 로 로드되는 진입점
-IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, LiftgateStudy, "LiftgateStudy");
+IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, LiftGateStudy, "LiftGateStudy" );
