@@ -18,21 +18,63 @@
 
 ---
 
-## W1.1 — Project 초기 셋업
+## W1.1 — Project 초기 셋업 + C++ Module Bootstrap (ADR-005)
 
-### W1.1.1 — GameMode Blueprint 생성
+### W1.1.0 — C++ Module 부트스트랩 (최초 1회)
 
-- [ ] Content Browser → Content/Blueprints/ 폴더 생성 (없으면)
-- [ ] 우클릭 → Blueprint Class → Parent: **GameModeBase**
+- [ ] UE Editor → Tools → **New C++ Class**
+- [ ] Parent: **GameModeBase** → Next
+- [ ] Name: `LiftgateStudyGameMode` (Public visibility)
+- [ ] Create Class → UE 가 다음을 자동 생성:
+  - `Source/LiftgateStudy/` 디렉토리
+  - `LiftgateStudy.Build.cs`, `LiftgateStudy.h/.cpp`
+  - `LiftgateStudyGameMode.h/.cpp`
+  - `.uproject` 에 `Modules` 항목 추가
+- [ ] VS 2022 가 sln 자동 생성 → 첫 컴파일 OK 확인
+- [ ] (확인) `.uproject` 에 다음 항목이 추가됐는지:
+  ```json
+  "Modules": [
+    {
+      "Name": "LiftgateStudy",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+  ```
+
+### W1.1.0.B — `.Build.cs` 의존성 추가
+
+- [ ] `Source/LiftgateStudy/LiftgateStudy.Build.cs` 열기 (VS 또는 텍스트 에디터)
+- [ ] `PublicDependencyModuleNames` 에 다음 추가:
+  ```csharp
+  PublicDependencyModuleNames.AddRange(new string[] {
+      "Core", "CoreUObject", "Engine", "InputCore",
+      "EnhancedInput",
+      "UMG", "Slate", "SlateCore",
+      "HeadMountedDisplay",
+  });
+  ```
+- [ ] 저장 후 Editor restart 또는 Live Coding 으로 재컴파일 → 성공 확인
+
+### W1.1.1 — ALiftgateStudyGameMode C++ 구현
+
+- [ ] `LiftgateStudyGameMode.h`: `UCLASS()` + `GENERATED_BODY()`, no custom 멤버 (Phase 1 단순화)
+- [ ] `.cpp` 의 Constructor 는 빈 상태 유지 (Default Pawn 은 BP child 에서 지정)
+- [ ] 컴파일 OK
+
+### W1.1.2 — BP_LiftgateStudyGameMode (BP child) 생성
+
+- [ ] Content Browser → Content/Blueprints/ 폴더 생성
+- [ ] 우클릭 → Blueprint Class → **All Classes** → `LiftgateStudyGameMode` 선택
 - [ ] 이름: `BP_LiftgateStudyGameMode`
-- [ ] 열기 → Class Defaults:
+- [ ] Class Defaults:
   - [ ] Default Pawn Class: `BP_VRPawn` (W1.2에서 생성 후 다시 와서 지정)
   - [ ] HUD Class: None
   - [ ] Player Controller Class: PlayerController (기본)
   - [ ] Game State Class: GameStateBase (기본)
 - [ ] 컴파일 + 저장
 
-### W1.1.2 — Project Settings 적용
+### W1.1.3 — Project Settings 적용
 
 - [ ] Edit → Project Settings → Maps & Modes:
   - [ ] Default GameMode: `BP_LiftgateStudyGameMode`
@@ -41,7 +83,7 @@
 - [ ] Engine → Rendering → Default RHI: **DirectX 12** (또는 Vulkan)
 - [ ] (확인) Plugins → Meta XR → Hand Tracking Support = **Controllers and Hands**
 
-### W1.1.3 — Input Mapping Context
+### W1.1.4 — Input Mapping Context
 
 - [ ] Content/Input/ 폴더 생성
 - [ ] `IMC_IsdkHand` 는 ISDK Sample 또는 Plugin Content 에서 migrate (자체 작성 금지, R5)
@@ -49,6 +91,8 @@
 
 ### 검증
 
+- [ ] C++ 모듈 `LiftgateStudy` VS 2022 컴파일 OK
+- [ ] `.uproject` 에 Modules 항목 추가됨
 - [ ] 프로젝트 실행 → 에러 없이 빈 Level 진입
 - [ ] VR Preview 진입 가능 (까만 화면이어도 OK, 다음 W에서 Pawn 추가)
 
@@ -187,136 +231,262 @@
 
 ---
 
-## W1.4 — WBP_CalibrationCheck
+## W1.4 — Calibration (C++ + WBP_CalibrationCheck + BP_CalibrationGate) — ADR-005
 
-### W1.4.1 — Widget Blueprint 생성
+> 산출물 3개:
+> - C++: `ECalibrationStatus`, `UCalibrationCheckWidget`, `ACalibrationGateActor`
+> - BP: `WBP_CalibrationCheck` (UMG layout)
+> - BP: `BP_CalibrationGate` (host actor)
+
+### W1.4.A — C++: ECalibrationStatus enum
+
+- [ ] `Source/LiftgateStudy/Public/Calibration/CalibrationTypes.h` 새 파일
+- [ ] 내용:
+  ```cpp
+  #pragma once
+  #include "CoreMinimal.h"
+  #include "CalibrationTypes.generated.h"
+
+  UENUM(BlueprintType)
+  enum class ECalibrationStatus : uint8
+  {
+      Checking UMETA(DisplayName="Checking"),
+      Pass     UMETA(DisplayName="Pass"),
+      Fail     UMETA(DisplayName="Fail")
+  };
+  ```
+- [ ] 컴파일 OK
+
+### W1.4.B — C++: UCalibrationCheckWidget
+
+- [ ] `Source/LiftgateStudy/Public/Calibration/CalibrationCheckWidget.h` 새 파일
+- [ ] Class declaration:
+  ```cpp
+  UCLASS(Abstract, BlueprintType, Blueprintable)
+  class LIFTGATESTUDY_API UCalibrationCheckWidget : public UUserWidget
+  {
+      GENERATED_BODY()
+
+  public:
+      UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Calibration")
+      float HMDHeightMin_mm = 1400.f;
+
+      UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Calibration")
+      float HMDHeightMax_mm = 2000.f;
+
+      UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Calibration")
+      float FloorZTolerance_mm = 5.f;
+
+      UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Calibration")
+      float FloorRayLength_cm = 300.f;
+
+      UPROPERTY(BlueprintReadOnly, Category="Calibration")
+      float HMDHeight_mm = 0.f;
+
+      UPROPERTY(BlueprintReadOnly, Category="Calibration")
+      float FloorZ_mm = 0.f;
+
+      UPROPERTY(BlueprintReadOnly, Category="Calibration")
+      ECalibrationStatus Status = ECalibrationStatus::Checking;
+
+      UPROPERTY(BlueprintReadOnly, Category="Calibration")
+      FText FailReason;
+
+      DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCalibrationComplete);
+      UPROPERTY(BlueprintAssignable, Category="Calibration")
+      FOnCalibrationComplete OnCalibrationComplete;
+
+      UFUNCTION(BlueprintCallable, Category="Calibration")
+      void RequestComplete();
+
+  protected:
+      virtual void NativeTick(const FGeometry& Geo, float DeltaTime) override;
+      void EvaluateOnce();
+  };
+  ```
+- [ ] `.cpp` 구현:
+  - [ ] `NativeTick` → `EvaluateOnce()` 호출
+  - [ ] `EvaluateOnce()`:
+    - Player Camera Manager 의 location 가져옴 (`GetWorld()->GetFirstPlayerController()->PlayerCameraManager`)
+    - `HMDHeight_mm = CameraLoc.Z * 10.f`
+    - `LineTraceSingleByChannel` (Start=CameraLoc, End=CameraLoc - Z*FloorRayLength_cm, Visibility)
+    - Hit → `FloorZ_mm = Hit.Location.Z * 10.f`
+    - No Hit → Fail with "Floor not detected"
+    - 판정 로직 + Status / FailReason 갱신
+  - [ ] `RequestComplete()` → Status == Pass 일 때만 `OnCalibrationComplete.Broadcast()`
+- [ ] 컴파일 OK
+
+### W1.4.C — C++: ACalibrationGateActor
+
+- [ ] `Source/LiftgateStudy/Public/Calibration/CalibrationGateActor.h` 새 파일
+- [ ] Class declaration:
+  ```cpp
+  UCLASS(Blueprintable)
+  class LIFTGATESTUDY_API ACalibrationGateActor : public AActor
+  {
+      GENERATED_BODY()
+
+  public:
+      ACalibrationGateActor();
+
+      UPROPERTY(VisibleAnywhere, Category="Calibration")
+      class UWidgetComponent* CalibrationWidgetComp;
+
+      UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Calibration")
+      TSubclassOf<UCalibrationCheckWidget> CalibrationWidgetClass;
+
+  protected:
+      virtual void BeginPlay() override;
+
+      UFUNCTION()
+      void HandleComplete();
+
+      UFUNCTION()
+      void HandlePinchInput();  // ISDK Pinch 바인딩
+  };
+  ```
+- [ ] `.cpp` 구현:
+  - Constructor: `CalibrationWidgetComp` 생성, Root 로 설정, Space=World, Draw Size=400×300
+  - BeginPlay: widget instance 가져와 `OnCalibrationComplete` 에 `HandleComplete` 바인딩
+  - HandleComplete: `Destroy()`
+  - ISDK pinch input action 등록 (자체 pinch 금지, R5)
+- [ ] 컴파일 OK
+
+### W1.4.D — BP: WBP_CalibrationCheck (UMG layout)
 
 - [ ] Content/UI/ 폴더 생성
-- [ ] 우클릭 → User Interface → Widget Blueprint → Parent: UserWidget
+- [ ] 우클릭 → User Interface → Widget Blueprint
+- [ ] **Parent Class: `CalibrationCheckWidget`** (C++ class 검색)
 - [ ] 이름: `WBP_CalibrationCheck`
-- [ ] **3D World-space 로 사용** (HUD 금지, R6)
+- [ ] UMG Designer 레이아웃:
+  ```
+  Vertical Box
+  ├── TextBlock_Title         → "CALIBRATION CHECK"
+  ├── TextBlock_Instruction   → "Stand straight, look forward"
+  ├── Spacer
+  ├── HorizontalBox (HMD)
+  │   ├── TextBlock           → "HMD Height: "
+  │   └── TextBlock_HMD       → Bind to HMDHeight_mm
+  ├── HorizontalBox (Floor)
+  │   ├── TextBlock           → "Floor Z: "
+  │   └── TextBlock_Floor     → Bind to FloorZ_mm
+  ├── TextBlock_Status        → Bind to Status (CHECKING / PASS / FAIL)
+  ├── TextBlock_FailReason    → Bind to FailReason (Status=Fail 일 때만)
+  └── TextBlock_Prompt        → "Pinch to confirm" (Status=Pass 일 때만 visible)
+  ```
+- [ ] 텍스트는 영어 (PQDQ 표준, CLAUDE.md §8), 단위 명시 (`mm`)
+- [ ] Bind 함수로 C++ UPROPERTY 참조
 
-### W1.4.2 — UI 레이아웃
+### W1.4.E — BP: BP_CalibrationGate (host actor)
 
-```
-┌────────────────────────────────────┐
-│      CALIBRATION CHECK             │
-│                                    │
-│   Stand straight, look forward     │
-│                                    │
-│   HMD Height:    [---] mm          │
-│   Floor Z:       [---] mm          │
-│                                    │
-│   Status: [CHECKING / PASS / FAIL] │
-│                                    │
-│   [Pinch to confirm]               │
-└────────────────────────────────────┘
-```
+- [ ] Content/Blueprints/ → 우클릭 → Blueprint Class → **All Classes** → `CalibrationGateActor` 선택
+- [ ] 이름: `BP_CalibrationGate`
+- [ ] Class Defaults:
+  - [ ] `CalibrationWidgetClass` = `WBP_CalibrationCheck`
+- [ ] WidgetComponent default 확인 (Space=World, Draw Size=400×300)
 
-- [ ] Vertical Box 안에 TextBlock 들 배치
-- [ ] 텍스트는 영어 (PQDQ 표준, CLAUDE.md §8)
-- [ ] 단위 명시 (`mm`, `deg`) — CLAUDE.md §8
+### W1.4.F — L_Main 에 배치
 
-### W1.4.3 — Variables (모두 EditAnywhere, Category=Calibration)
-
-- [ ] `HMDHeightMin_mm` (float, default **1400**)
-- [ ] `HMDHeightMax_mm` (float, default **2000**)
-- [ ] `FloorZTolerance_mm` (float, default **5.0**)
-- [ ] `HMDHeight_mm` (float, runtime)
-- [ ] `FloorZ_mm` (float, runtime)
-- [ ] `Status` (enum or text: CHECKING / PASS / FAIL)
-
-### W1.4.4 — 검증 로직
-
-- [ ] Tick (또는 Timer 0.1s) 에서:
-  - [ ] Camera world location 의 Z (cm) → `HMDHeight_mm = Z * 10`
-  - [ ] LineTraceByChannel: Camera location, 방향 = -Z (world down), 거리 = 3m
-    - [ ] Hit 위치 Z (cm) → `FloorZ_mm = HitZ * 10`
-- [ ] Pass 조건 평가:
-  - [ ] `HMDHeightMin_mm <= HMDHeight_mm <= HMDHeightMax_mm`
-  - [ ] `abs(FloorZ_mm) <= FloorZTolerance_mm`
-- [ ] Status 갱신
-- [ ] Fail 시 안내 메시지 분기:
-  - [ ] HMD < 1400: "You may be sitting. Please stand."
-  - [ ] HMD > 2000: "Calibration may be off. Re-do Quest boundary setup."
-  - [ ] Floor 초과: "Floor not detected at Z=0. Re-do boundary."
-
-### W1.4.5 — Pinch 확인 진입
-
-- [ ] ISDK pinch action 바인딩 (자체 pinch 작성 금지, R5)
-- [ ] Pass 상태 + Pinch detected → 평가 모드 진입 (widget 제거 또는 hide)
-
-### W1.4.6 — Widget 배치
-
-- [ ] L_Main 시작 시 Camera 정면 1.5m 거리에 spawn
-- [ ] World-space, 평가자 시야 정면 (HUD 금지)
+- [ ] L_Main 에 `BP_CalibrationGate` 1개 배치
+- [ ] Location: PlayerStart 정면 1.5m, Z = 1.6m
+- [ ] Rotation: PlayerStart 를 바라보게
 
 ### 검증
 
+- [ ] C++ 모듈 컴파일 OK
 - [ ] VR 진입 시 widget 이 평가자 정면 1.5m 거리에 표시
 - [ ] HMD Height 가 실시간 갱신 (±1mm 흔들림 OK)
 - [ ] 잘못된 자세 (앉기) → "You may be sitting" 표시
 - [ ] HMD > 2000 / Floor 어긋남 → 해당 메시지 표시
-- [ ] 정상 자세 + Pinch → 평가 진입 (widget 사라짐)
-- [ ] 모든 Magic Number (HMDHeightMin_mm 등) 가 BP variable 로 노출, 튜닝 가능
+- [ ] 정상 자세 + Pinch → `OnCalibrationComplete` 발행 → BP_CalibrationGate Destroy
+- [ ] 모든 Magic Number (HMDHeightMin_mm 등) 가 BP child 에서 default 조정 가능
 
 ---
 
-## W1.5 — WBP_WristPanel
+## W1.5 — Wrist Panel (C++ + WBP_WristPanel) — ADR-005
 
-### W1.5.1 — Widget Blueprint 생성
+> 산출물 2개:
+> - C++: `UWristPanelWidget`
+> - BP: `WBP_WristPanel` (UMG layout)
+> - Host: `BP_VRPawn` 의 `WristUIAnchor` WidgetComponent (ADR-004 W1.2 에서 추가됨)
 
-- [ ] Content/UI/ → Widget Blueprint → `WBP_WristPanel`
-- [ ] Parent: UserWidget
+### W1.5.A — C++: UWristPanelWidget
 
-### W1.5.2 — UI 레이아웃
+- [ ] `Source/LiftgateStudy/Public/UI/WristPanelWidget.h` 새 파일
+- [ ] Class declaration:
+  ```cpp
+  UCLASS(Abstract, BlueprintType, Blueprintable)
+  class LIFTGATESTUDY_API UWristPanelWidget : public UUserWidget
+  {
+      GENERATED_BODY()
 
-```
-┌──────────────────────┐
-│  CALIBRATION         │
-│  HMD: ---- mm        │
-│  Floor: ✓ / ✗        │
-│                      │
-│  [Recalibrate]       │
-└──────────────────────┘
-```
+  public:
+      UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+      float WristVisibleDotThreshold = 0.5f;
 
-- [ ] 텍스트 영어, 단위 명시
+      UPROPERTY(BlueprintReadOnly, Category="UI")
+      float HMDHeight_mm = 0.f;
 
-### W1.5.3 — Widget Component 부착
+      UPROPERTY(BlueprintReadOnly, Category="UI")
+      bool bFloorOK = false;
 
-- [ ] BP_VRPawn 의 HandRig_Left 하위에 WidgetComponent 추가
-- [ ] Widget Class: `WBP_WristPanel`
-- [ ] Draw Size: 적절히 (예: 200×150)
-- [ ] World-space, Wrist socket 위치에 attach (Quest hand mesh 의 wrist socket 이름은 ISDK Sample 에서 확인)
-- [ ] Pivot: 손목에 자연스럽게 위치
+      DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRecalibrateRequested);
+      UPROPERTY(BlueprintAssignable, Category="UI")
+      FOnRecalibrateRequested OnRecalibrateRequested;
 
-### W1.5.4 — Visibility 제어
+      UFUNCTION(BlueprintCallable, Category="UI")
+      void OnRecalibrateClicked();
 
-- [ ] Tick:
-  - [ ] 왼손 mesh 의 Up vector 가져오기 (손바닥 방향)
-  - [ ] Dot(handUp, WorldUp) 계산
-  - [ ] `> 0.5` → Visibility = Visible
-  - [ ] `<= 0.5` → Visibility = Collapsed (또는 Hidden)
-- [ ] Threshold 값 (`WristVisibleDotThreshold`, default 0.5) 를 BP variable 로 노출
+  protected:
+      virtual void NativeTick(const FGeometry& Geo, float DeltaTime) override;
 
-### W1.5.5 — 데이터 바인딩
+      // 좌측 hand mesh 의 Up vector 를 외부에서 주입하거나 owning component 에서 가져옴
+      UFUNCTION(BlueprintCallable, Category="UI")
+      FVector GetLeftHandUpVector() const;
+  };
+  ```
+- [ ] `.cpp` 구현:
+  - [ ] `NativeTick`:
+    - `GetLeftHandUpVector()` 결과를 World Up 과 dot product
+    - `>= WristVisibleDotThreshold` → Visibility = `Visible`
+    - 그 외 → `Collapsed`
+  - [ ] `OnRecalibrateClicked()` → `OnRecalibrateRequested.Broadcast()`
+- [ ] 컴파일 OK
 
-- [ ] HMD Height: BP_VRPawn 또는 GameState 에서 가져와 실시간 갱신
-- [ ] Floor Status: ✓ / ✗ (W1.4 의 검증 결과 참조)
+### W1.5.B — BP: WBP_WristPanel (UMG layout)
 
-### W1.5.6 — Recalibrate 버튼
+- [ ] Content/UI/ → Widget Blueprint
+- [ ] **Parent: `WristPanelWidget`** (C++ class)
+- [ ] 이름: `WBP_WristPanel`
+- [ ] UMG Designer:
+  ```
+  Vertical Box
+  ├── TextBlock           → "CALIBRATION"
+  ├── TextBlock_HMD       → "HMD: " + Bind to HMDHeight_mm + " mm"
+  ├── TextBlock_Floor     → "Floor: " + Bind to bFloorOK (✓ / ✗)
+  └── Button_Recalibrate  → "Recalibrate"
+      └── OnClicked → OnRecalibrateClicked()
+  ```
+- [ ] 텍스트 영어, 단위 명시 (`mm`)
+- [ ] Button 은 ISDK poke 또는 pinch interaction 으로 동작 (R5)
 
-- [ ] Button widget → ISDK poke 또는 pinch interaction 으로 동작 (R5)
-- [ ] OnClick: WBP_CalibrationCheck 재표시 + 검증 재시작
+### W1.5.C — BP_VRPawn 의 WristUIAnchor 연결
+
+- [ ] `BP_VRPawn` 열기 (ADR-004 W1.2 에서 `WristUIAnchor` 추가돼 있음)
+- [ ] `WristUIAnchor.Widget Class` = `WBP_WristPanel`
+- [ ] BeginPlay:
+  - [ ] `WristUIAnchor->GetUserWidgetObject()` 로 instance 획득
+  - [ ] `OnRecalibrateRequested` 에 calibration gate spawn 함수 바인딩
 
 ### 검증
 
-- [ ] 손바닥 위로 향할 때만 Wrist UI 보임
+- [ ] C++ 모듈 컴파일 OK
+- [ ] 손바닥 위로 향할 때만 Wrist UI 보임 (dot ≥ threshold)
 - [ ] 손등이 위로 향하거나 손이 옆을 향하면 hidden
 - [ ] HMD Height 실시간 갱신
 - [ ] Recalibrate 버튼 누르면 calibration widget 재진입
 - [ ] HUD 가 아닌 wrist 에 attach 되어 머리 움직임 따라가지 않음 (R6)
+- [ ] UPROPERTY threshold 가 BP child 에서 default 조정 가능
 
 ---
 
@@ -333,7 +503,9 @@
 - [ ] Recalibrate 버튼 동작
 - [ ] 더미 차량 박스가 정상 비례 (어깨 높이쯤)
 - [ ] 차량 박스 바닥과 floor grid 가 일치 (틈 없음)
-- [ ] 모든 Magic Number 가 BP variable 로 노출되어 튜닝 가능
+- [ ] 모든 Magic Number 가 C++ UPROPERTY 로 노출, BP child 에서 default 조정 가능 (ADR-005)
+- [ ] `LiftgateStudy` C++ 모듈 VS 2022 컴파일 통과
+- [ ] Live Coding 또는 Editor restart 컴파일 정상
 
 ---
 
@@ -341,11 +513,14 @@
 
 | 증상 | 1차 확인 |
 |---|---|
+| C++ 모듈 컴파일 실패 | `.Build.cs` dependency 확인 (`UMG`, `EnhancedInput`, `HeadMountedDisplay`), VS 2022 + Windows SDK |
+| Live Coding 적용 안 됨 | Editor 완전 재시작, `Saved/` 의 hot reload temp 삭제 |
+| BP child 의 parent class 가 안 보임 | C++ 클래스가 `UCLASS()` + `Blueprintable` 인지 확인, 모듈 컴파일 OK 후 Editor restart |
 | Hand tracking 안 뜸 | Project Settings → Meta XR → Hand Tracking Support |
 | Floor 어긋남 | `Set Tracking Origin → Floor Level` BeginPlay 호출 여부, Quest Guardian 재설정 |
 | ISDK Hand rig 안 붙음 | Sample 에서 prefab 다시 Migrate, Sample branch 확인 (5.5.4-v78) |
-| Wrist UI 안 보임 | Hand socket 이름 (Quest hand mesh 표준), Dot threshold (0.5) 디버그 출력 |
-| Calibration 항상 Fail | HMD Height 값 print, ray cast 시각화 (Debug Line) |
+| Wrist UI 안 보임 | Hand socket 이름 (Quest hand mesh 표준), Dot threshold 디버그 출력 |
+| Calibration 항상 Fail | HMD Height 값 print, ray cast 시각화 (`DrawDebugLine`) |
 | PCVR 연결 끊김 | Quest Link 앱 재시작, USB-C 데이터 케이블 (충전 전용 X), Air Link 시 5GHz Wi-Fi |
 | Pinch 가 안 잡힘 | ISDK pinch action 바인딩 확인, Tracking Confidence Low 시 환경 조명 |
 
@@ -356,7 +531,9 @@
 ## Commit 규칙
 
 - 한 work item 완료 시 commit
+- C++ / BP 변경은 가능하면 별도 commit
 - Commit message format: `phase1: <work_item> <action>`
-  - 예: `phase1: W1.4 add calibration ray cast logic`
-  - 예: `phase1: W1.2 wire BP_VRPawn floor tracking origin`
+  - 예: `phase1: W1.4 add UCalibrationCheckWidget skeleton`
+  - 예: `phase1: W1.4 wire WBP_CalibrationCheck to C++ base`
+  - 예: `phase1: W1.2 override BeginPlay for floor tracking origin`
 - 영어 commit message
