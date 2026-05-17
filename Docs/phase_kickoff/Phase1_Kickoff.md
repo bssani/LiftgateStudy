@@ -8,8 +8,7 @@
 
 VR로 진입한 평가자가:
 1. Calibration 강제 검증을 통과하고
-2. Wrist UI를 손목에서 확인할 수 있으며
-3. 더미 차량 앞에 정상 비례로 서있을 수 있는
+2. 더미 차량 앞에 정상 비례로 서있을 수 있는 (Wrist Panel 은 ADR-008 에 의해 폐기됨)
 
 **최소 골격**을 구축한다.
 
@@ -65,8 +64,7 @@ LiftgateStudy/
 │       │   │   ├── CalibrationTypes.h            (ECalibrationStatus)
 │       │   │   ├── CalibrationCheckWidget.h
 │       │   │   └── CalibrationGateActor.h
-│       │   └── UI/
-│       │       └── WristPanelWidget.h
+│       │   └── (UI/ 는 ADR-008 이후 사용 안 함)
 │       └── Private/
 │           └── (대응 .cpp)
 └── Content/
@@ -79,8 +77,7 @@ LiftgateStudy/
     │   ├── BP_CalibrationGate.uasset         ← C++ ACalibrationGateActor 의 child
     │   └── BP_VehicleInfo.uasset             ← 골격만, 상세는 Phase 2
     ├── UI/
-    │   ├── WBP_CalibrationCheck.uasset       ← C++ UCalibrationCheckWidget 의 child
-    │   └── WBP_WristPanel.uasset             ← C++ UWristPanelWidget 의 child
+    │   └── WBP_CalibrationCheck.uasset       ← C++ UCalibrationCheckWidget 의 child
     ├── Input/
     │   └── IMC_IsdkHand.uasset
     ├── Materials/
@@ -140,12 +137,10 @@ LiftgateStudy/
 1. Content/Blueprints/ → 우클릭 → Blueprint Class → **Pick Parent Class**:
    - "All Classes" 검색 → **`IsdkSamplePawn`** 선택
    - 이름: `BP_VRPawn`
-2. Component 구조 (parent 상속분 + 추가):
+2. Component 구조 (parent 상속분만 사용, 추가 컴포넌트 없음):
    ```
    BP_VRPawn (IsdkSamplePawn)
-   ├── (parent에서 상속: HandRig_Left, HandRig_Right, Camera 등 — 직접 추가 금지)
-   └── WristUIAnchor (WidgetComponent, W1.5에서 활용)
-       └── parent: 좌측 hand mesh wrist socket
+   └── (parent에서 상속: HandRig_Left, HandRig_Right, Camera 등 — 직접 추가 / 삭제 금지)
    ```
 3. BeginPlay override:
    - `Set Tracking Origin → Floor Level` 호출 (필수, R1) — parent 호출 여부와 무관하게 명시
@@ -272,59 +267,10 @@ LiftgateStudy/
 
 ---
 
-### W1.5 — Wrist Panel (C++ Logic + WBP Layout)
+### W1.5 — (제거됨, ADR-008)
 
-> ADR-005 적용. 두 가지 산출물:
-> - **C++**: `UWristPanelWidget` (visibility 판정 + 데이터 바인딩)
-> - **BP**: `WBP_WristPanel` (UMG layout, parent = `UWristPanelWidget`)
-> - host: `BP_VRPawn` 의 `WristUIAnchor` WidgetComponent (ADR-004 W1.2 에서 추가됨)
-
-**작업**:
-
-#### W1.5.A — C++: UWristPanelWidget
-- `Source/LiftGateStudy/Public/UI/WristPanelWidget.h/.cpp`
-- Base: `UUserWidget`, `UCLASS(Abstract, BlueprintType, Blueprintable)`
-- UPROPERTY (Category="UI", EditAnywhere, BlueprintReadWrite):
-  - `float WristVisibleDotThreshold = 0.5f;`
-- UPROPERTY (Category="UI", BlueprintReadOnly):
-  - `float HMDHeight_mm;`
-  - `bool bFloorOK;`
-- 함수:
-  - `virtual void NativeTick(...) override`:
-    - 좌측 hand mesh 의 Up vector vs World Up dot product 계산
-    - 임계 이상이면 Visible, 아니면 Collapsed
-    - HMD / Floor 상태를 Calibration widget 또는 GameState 에서 읽어 갱신
-  - `UFUNCTION(BlueprintCallable) void OnRecalibrateClicked()` — calibration 재진입 트리거
-- Event Dispatcher:
-  - `DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRecalibrateRequested);`
-  - `UPROPERTY(BlueprintAssignable) FOnRecalibrateRequested OnRecalibrateRequested;`
-
-#### W1.5.B — BP: WBP_WristPanel (layout)
-- Parent: `UWristPanelWidget`
-- UMG Designer:
-  ```
-  ┌──────────────────────┐
-  │  CALIBRATION         │
-  │  HMD: ---- mm        │
-  │  Floor: ✓ / ✗        │
-  │                      │
-  │  [Recalibrate]       │
-  └──────────────────────┘
-  ```
-- Recalibrate 버튼 OnClicked → `OnRecalibrateClicked()` 호출
-- 버튼은 **ISDK Poke Interactor** 로 동작 (R8 / ADR-007)
-
-#### W1.5.C — BP_VRPawn 에서 binding
-- `WristUIAnchor` WidgetComponent (ADR-004 W1.2 에서 추가됨) 의 Widget Class = `WBP_WristPanel`
-- BeginPlay 에서 widget instance 의 `OnRecalibrateRequested` 에 calibration gate spawn 함수 바인딩
-
-**검증**:
-- C++ 모듈 컴파일 성공
-- 손바닥 위로 향할 때만 Wrist UI 보임 (dot > threshold)
-- 손등 / 옆 방향이면 hidden
-- HMD Height 실시간 갱신
-- Recalibrate 버튼 누르면 calibration widget 재진입
-- UPROPERTY threshold 가 BP child 에서 default 조정 가능
+> Wrist Panel 은 ADR-008 에 따라 폐기됨. Primary UI = World-space widget.
+> Phase 1 산출물에서 제외. 평가 중 HMD / Floor 상태 실시간 표시 / Recalibrate trigger 는 향후 phase 에서 다른 방식으로 재설계.
 
 ---
 
@@ -356,8 +302,9 @@ LiftgateStudy/
 | ADR-002 | Mode 자유 토글 | Phase 1 범위 외, 차량 metadata 단순화 |
 | ADR-003 | 평가 데이터 로깅 없음 | 모든 W 에서 파일 출력 금지 |
 | ADR-004 | BP_VRPawn = IsdkSamplePawn child | W1.2 의 hand rig migrate 제거 |
-| ADR-005 | C++ 로직 + BP 레이아웃 hybrid | W1.1 module bootstrap, W1.4 / W1.5 C++ widget base |
-| ADR-007 | Button poke 기반 confirmation | W1.4 Confirm 버튼, W1.5 Recalibrate 버튼 — gesture / pinch 금지 |
+| ADR-005 | C++ 로직 + BP 레이아웃 hybrid | W1.1 module bootstrap, W1.4 C++ widget base |
+| ADR-007 | Button poke 기반 confirmation | W1.4 Confirm 버튼 — gesture / pinch 금지 |
+| ADR-008 | WristPanel 폐기 (World-space UI) | W1.5 제거. BP_VRPawn 의 WristUIAnchor 컴포넌트 / `UWristPanelWidget` C++ 클래스 모두 삭제 |
 
 ---
 
@@ -369,11 +316,8 @@ Phase 1 완료 시점 산출물:
 2. **컴파일되는 C++ 모듈** (`LiftGateStudy`):
    - `ALiftgateStudyGameMode`
    - `UCalibrationCheckWidget`, `ACalibrationGateActor`, `ECalibrationStatus`
-   - `UWristPanelWidget`
 3. **Working build**: PIE (Play In Editor) 또는 VR Preview 에서:
    - VR 진입 → Calibration Check → Confirm 버튼 poke → 더미 차량 앞에 위치
-   - Wrist UI 손바닥 방향 따라 visible/hidden
-   - Recalibrate 동작
 4. **README.md** — Phase 1 완료 상태, 셋업 방법, 알려진 이슈 명시
 5. **ADR 5종** — `Docs/decisions/` 폴더에 박제 (ADR-001~005)
 
@@ -388,8 +332,6 @@ Phase 1 완료 보고 시 사용자가 직접 확인할 항목:
 - [ ] Floor Z difference가 0±5mm
 - [ ] Calibration Fail 시 안내 메시지 적절히 표시
 - [ ] Confirm 버튼 poke 로 calibration 통과 동작 (Phase 1 검증 중에는 keyboard Space 임시 사용 허용)
-- [ ] Wrist UI가 손바닥 방향 따라 visible/hidden 전환
-- [ ] Recalibrate 버튼 동작
 - [ ] 더미 차량 박스가 정상 비례 (어깨 높이쯤)
 - [ ] 차량 박스 바닥과 floor grid가 일치 (틈 없음)
 - [ ] 모든 Magic Number 가 C++ UPROPERTY 로 노출되어 BP child 에서 튜닝 가능 (ADR-005)
@@ -431,7 +373,7 @@ Phase 1 완료 보고 시 사용자가 직접 확인할 항목:
 | 평가 로깅 | 없음 |
 | Power button 위치 | BP_Liftgate child component, Level에서 평가자가 수동 배치 |
 | Level 구조 | Persistent + streaming sublevel |
-| UI | Wrist Panel (좌측 손목) 통합 |
+| UI | World-space widget (Primary). Wrist Panel 폐기 (ADR-008) |
 
 ---
 
@@ -444,7 +386,7 @@ Phase 1 완료 보고 시 사용자가 직접 확인할 항목:
 3. **W1.3** (Level) → 발 밑 floor 확인, 비례감 확인
 4. **W1.6** (더미 차량) → 차량 비례감 확인
 5. **W1.4** (Calibration, C++ hybrid) → 검증 로직 동작
-6. **W1.5** (Wrist UI, C++ hybrid) → 손목 UI 동작 + Recalibrate
+6. (W1.5 제거 — ADR-008)
 
 각 W 완료 시 commit (`phase1: W1.x <action>`). C++ 변경은 별도 commit (`phase1: W1.x add UCalibrationCheckWidget skeleton` 등).
 
@@ -457,7 +399,6 @@ Phase 1 완료 보고 시 사용자가 직접 확인할 항목:
 | Hand tracking 안 뜸 | Project Settings → Meta XR → Hand Tracking Support 확인 |
 | Floor가 어긋남 | `Set Tracking Origin` 호출 여부, Quest Guardian 재설정 |
 | ISDK Hand rig가 손에 안 붙음 | Sample에서 prefab 다시 복사 |
-| Wrist UI가 안 보임 | Hand socket 이름 확인 (Quest hand mesh 표준명) |
 | Calibration이 항상 Fail | HMD Height 값 디버그 출력, ray cast trace 시각화 |
 | PCVR 연결 안 됨 | Quest Link 앱 재시작, USB-C 케이블 점검 |
 
