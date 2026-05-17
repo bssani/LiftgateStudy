@@ -342,14 +342,14 @@
       void HandleComplete();
 
       UFUNCTION()
-      void HandlePinchInput();  // ISDK Pinch 바인딩
+      void HandlePinchInput();  // 역사적 이름. 실제로는 Confirm 버튼 OnClicked 라우팅 (ADR-007 / R8)
   };
   ```
 - [ ] `.cpp` 구현:
   - Constructor: `CalibrationWidgetComp` 생성, Root 로 설정, Space=World, Draw Size=400×300
   - BeginPlay: widget instance 가져와 `OnCalibrationComplete` 에 `HandleComplete` 바인딩
   - HandleComplete: `Destroy()`
-  - ISDK pinch input action 등록 (자체 pinch 금지, R5)
+  - Confirm 버튼 OnClicked → `HandlePinchInput()` 호출 wiring (ADR-007 / R8). 검증 단계에서는 keyboard Space 임시 fallback 허용
 - [ ] 컴파일 OK
 
 ### W1.4.D — BP: WBP_CalibrationCheck (UMG layout)
@@ -372,7 +372,8 @@
   │   └── TextBlock_Floor     → Bind to FloorZ_mm
   ├── TextBlock_Status        → Bind to Status (CHECKING / PASS / FAIL)
   ├── TextBlock_FailReason    → Bind to FailReason (Status=Fail 일 때만)
-  └── TextBlock_Prompt        → "Pinch to confirm" (Status=Pass 일 때만 visible)
+  ├── TextBlock_Prompt        → "Press Confirm" (Status=Pass 일 때만 visible)
+  └── Button_Confirm          → OnClicked = HandlePinchInput, visible only when Status=Pass (ADR-007)
   ```
 - [ ] 텍스트는 영어 (PQDQ 표준, CLAUDE.md §8), 단위 명시 (`mm`)
 - [ ] Bind 함수로 C++ UPROPERTY 참조
@@ -398,7 +399,7 @@
 - [ ] HMD Height 가 실시간 갱신 (±1mm 흔들림 OK)
 - [ ] 잘못된 자세 (앉기) → "You may be sitting" 표시
 - [ ] HMD > 2000 / Floor 어긋남 → 해당 메시지 표시
-- [ ] 정상 자세 + Pinch → `OnCalibrationComplete` 발행 → BP_CalibrationGate Destroy
+- [ ] 정상 자세 + Confirm 버튼 poke (또는 검증 단계의 keyboard Space) → `OnCalibrationComplete` 발행 → BP_CalibrationGate Destroy
 - [ ] 모든 Magic Number (HMDHeightMin_mm 등) 가 BP child 에서 default 조정 가능
 
 ---
@@ -468,7 +469,7 @@
       └── OnClicked → OnRecalibrateClicked()
   ```
 - [ ] 텍스트 영어, 단위 명시 (`mm`)
-- [ ] Button 은 ISDK poke 또는 pinch interaction 으로 동작 (R5)
+- [ ] Button 은 **ISDK Poke Interactor** 로 동작 (R8 / ADR-007). Wrist 에 있어 proximity 자동 만족
 
 ### W1.5.C — BP_VRPawn 의 WristUIAnchor 연결
 
@@ -498,7 +499,7 @@
 - [ ] HMD Height 값이 평가자 실제 키와 일치 (±5cm)
 - [ ] Floor Z difference 가 0 ± 5mm
 - [ ] Calibration Fail 시 안내 메시지 적절히 표시
-- [ ] Pinch 로 calibration 통과 동작
+- [ ] Confirm 버튼 poke (또는 keyboard Space 임시) 로 calibration 통과 동작
 - [ ] Wrist UI 가 손바닥 방향 따라 visible / hidden 전환
 - [ ] Recalibrate 버튼 동작
 - [ ] 더미 차량 박스가 정상 비례 (어깨 높이쯤)
@@ -522,7 +523,8 @@
 | Wrist UI 안 보임 | Hand socket 이름 (Quest hand mesh 표준), Dot threshold 디버그 출력 |
 | Calibration 항상 Fail | HMD Height 값 print, ray cast 시각화 (`DrawDebugLine`) |
 | PCVR 연결 끊김 | Quest Link 앱 재시작, USB-C 데이터 케이블 (충전 전용 X), Air Link 시 5GHz Wi-Fi |
-| Pinch 가 안 잡힘 | ISDK pinch action 바인딩 확인, Tracking Confidence Low 시 환경 조명 |
+| Confirm 버튼이 안 눌림 | Button OnClicked → HandlePinchInput wiring 확인, Poke Interactor 가 IsdkSamplePawn 에 있는지, 버튼이 평가자 손에 닿는 거리인지 (R8 / ADR-007) |
+| Pinch / gesture 로 confirm 하고 싶음 | 금지 (R8). Button poke 만 사용 |
 
 해결 안 되는 이슈는 `Docs/lessons_learned/<topic>.md` 로 박제.
 
