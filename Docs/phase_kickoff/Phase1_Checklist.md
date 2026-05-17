@@ -2,7 +2,7 @@
 
 > Phase1_Kickoff.md의 W1.1~W1.6를 **UE Editor에서 따라갈 수 있는 체크리스트**로 풀어둔 문서.
 > 모든 항목은 CLAUDE.md (Critical Rules R1~R7, Naming Conventions, Coding Style) 를 준수해야 한다.
-> 작업 순서는 Phase1_Kickoff.md §10 권장 순서 (W1.1 → W1.2 → W1.3 → W1.6 → W1.4 → W1.5).
+> 작업 순서는 Phase1_Kickoff.md §10 권장 순서 (W1.1 → W1.2 → W1.3 → W1.6 → W1.4). W1.5 는 ADR-008 에 의해 제거됨.
 
 ---
 
@@ -118,12 +118,7 @@
   BP_VRPawn (IsdkSamplePawn)
   └── (parent: HandRig_Left, HandRig_Right, Camera, EnhancedInputComponent 등)
   ```
-- [ ] Wrist UI attach point 추가 (W1.5에서 활용):
-  - [ ] Add Component → **WidgetComponent**, 이름 `WristUIAnchor`
-  - [ ] Parent socket: 좌측 hand mesh 의 wrist socket (ISDK Sample 의 hand mesh 표준 socket 이름 확인, 예: `wrist_l` 또는 `WristRoot_L`)
-  - [ ] Widget Class: (W1.5에서 `WBP_WristPanel` 지정)
-  - [ ] Draw Size: 200×150 (W1.5에서 조정)
-  - [ ] Initial Visibility: Hidden (W1.5의 dot product 조건에서 토글)
+- [ ] 추가 component 없음 (ADR-008 이후 — 이전 spec 의 WristUIAnchor 삭제됨)
 
 ### W1.2.3 — BeginPlay override
 
@@ -404,90 +399,19 @@
 
 ---
 
-## W1.5 — Wrist Panel (C++ + WBP_WristPanel) — ADR-005
+## W1.5 — (제거됨, ADR-008)
 
-> 산출물 2개:
-> - C++: `UWristPanelWidget`
-> - BP: `WBP_WristPanel` (UMG layout)
-> - Host: `BP_VRPawn` 의 `WristUIAnchor` WidgetComponent (ADR-004 W1.2 에서 추가됨)
-
-### W1.5.A — C++: UWristPanelWidget
-
-- [ ] `Source/LiftGateStudy/Public/UI/WristPanelWidget.h` 새 파일
-- [ ] Class declaration:
-  ```cpp
-  UCLASS(Abstract, BlueprintType, Blueprintable)
-  class LIFTGATESTUDY_API UWristPanelWidget : public UUserWidget
-  {
-      GENERATED_BODY()
-
-  public:
-      UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-      float WristVisibleDotThreshold = 0.5f;
-
-      UPROPERTY(BlueprintReadOnly, Category="UI")
-      float HMDHeight_mm = 0.f;
-
-      UPROPERTY(BlueprintReadOnly, Category="UI")
-      bool bFloorOK = false;
-
-      DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRecalibrateRequested);
-      UPROPERTY(BlueprintAssignable, Category="UI")
-      FOnRecalibrateRequested OnRecalibrateRequested;
-
-      UFUNCTION(BlueprintCallable, Category="UI")
-      void OnRecalibrateClicked();
-
-  protected:
-      virtual void NativeTick(const FGeometry& Geo, float DeltaTime) override;
-
-      // 좌측 hand mesh 의 Up vector 를 외부에서 주입하거나 owning component 에서 가져옴
-      UFUNCTION(BlueprintCallable, Category="UI")
-      FVector GetLeftHandUpVector() const;
-  };
-  ```
-- [ ] `.cpp` 구현:
-  - [ ] `NativeTick`:
-    - `GetLeftHandUpVector()` 결과를 World Up 과 dot product
-    - `>= WristVisibleDotThreshold` → Visibility = `Visible`
-    - 그 외 → `Collapsed`
-  - [ ] `OnRecalibrateClicked()` → `OnRecalibrateRequested.Broadcast()`
-- [ ] 컴파일 OK
-
-### W1.5.B — BP: WBP_WristPanel (UMG layout)
-
-- [ ] Content/UI/ → Widget Blueprint
-- [ ] **Parent: `WristPanelWidget`** (C++ class)
-- [ ] 이름: `WBP_WristPanel`
-- [ ] UMG Designer:
-  ```
-  Vertical Box
-  ├── TextBlock           → "CALIBRATION"
-  ├── TextBlock_HMD       → "HMD: " + Bind to HMDHeight_mm + " mm"
-  ├── TextBlock_Floor     → "Floor: " + Bind to bFloorOK (✓ / ✗)
-  └── Button_Recalibrate  → "Recalibrate"
-      └── OnClicked → OnRecalibrateClicked()
-  ```
-- [ ] 텍스트 영어, 단위 명시 (`mm`)
-- [ ] Button 은 **ISDK Poke Interactor** 로 동작 (R8 / ADR-007). Wrist 에 있어 proximity 자동 만족
-
-### W1.5.C — BP_VRPawn 의 WristUIAnchor 연결
-
-- [ ] `BP_VRPawn` 열기 (ADR-004 W1.2 에서 `WristUIAnchor` 추가돼 있음)
-- [ ] `WristUIAnchor.Widget Class` = `WBP_WristPanel`
-- [ ] BeginPlay:
-  - [ ] `WristUIAnchor->GetUserWidgetObject()` 로 instance 획득
-  - [ ] `OnRecalibrateRequested` 에 calibration gate spawn 함수 바인딩
-
-### 검증
-
-- [ ] C++ 모듈 컴파일 OK
-- [ ] 손바닥 위로 향할 때만 Wrist UI 보임 (dot ≥ threshold)
-- [ ] 손등이 위로 향하거나 손이 옆을 향하면 hidden
-- [ ] HMD Height 실시간 갱신
-- [ ] Recalibrate 버튼 누르면 calibration widget 재진입
-- [ ] HUD 가 아닌 wrist 에 attach 되어 머리 움직임 따라가지 않음 (R6)
-- [ ] UPROPERTY threshold 가 BP child 에서 default 조정 가능
+> Wrist Panel 은 ADR-008 에 따라 폐기됨. Phase 1 에서 작업 안 함.
+>
+> **Windows UE Editor 에서 다음 cleanup 필요** (본 PR 머지 전):
+>
+> 1. BP_VRPawn 열기 → `WristUIAnchor` 컴포넌트 우클릭 → Delete
+> 2. BP_VRPawn 의 Event Graph 에서 WristWidget 관련 노드 모두 제거 (SetHandUpVector, SetCalibrationSnapshot, cache, OnRecalibrateRequested bind 등)
+> 3. Content Browser → `WBP_WristPanel.uasset` 우클릭 → Delete (참조 확인 후)
+> 4. BP_VRPawn 컴파일 OK 확인
+> 5. commit & push (BP 변경)
+>
+> 위 cleanup 후 본 PR (C++ 파일 삭제) 을 pull 받으면 컴파일 무사 통과.
 
 ---
 
@@ -500,8 +424,6 @@
 - [ ] Floor Z difference 가 0 ± 5mm
 - [ ] Calibration Fail 시 안내 메시지 적절히 표시
 - [ ] Confirm 버튼 poke (또는 keyboard Space 임시) 로 calibration 통과 동작
-- [ ] Wrist UI 가 손바닥 방향 따라 visible / hidden 전환
-- [ ] Recalibrate 버튼 동작
 - [ ] 더미 차량 박스가 정상 비례 (어깨 높이쯤)
 - [ ] 차량 박스 바닥과 floor grid 가 일치 (틈 없음)
 - [ ] 모든 Magic Number 가 C++ UPROPERTY 로 노출, BP child 에서 default 조정 가능 (ADR-005)
@@ -520,7 +442,6 @@
 | Hand tracking 안 뜸 | Project Settings → Meta XR → Hand Tracking Support |
 | Floor 어긋남 | `Set Tracking Origin → Floor Level` BeginPlay 호출 여부, Quest Guardian 재설정 |
 | ISDK Hand rig 안 붙음 | Sample 에서 prefab 다시 Migrate, Sample branch 확인 (5.5.4-v78) |
-| Wrist UI 안 보임 | Hand socket 이름 (Quest hand mesh 표준), Dot threshold 디버그 출력 |
 | Calibration 항상 Fail | HMD Height 값 print, ray cast 시각화 (`DrawDebugLine`) |
 | PCVR 연결 끊김 | Quest Link 앱 재시작, USB-C 데이터 케이블 (충전 전용 X), Air Link 시 5GHz Wi-Fi |
 | Confirm 버튼이 안 눌림 | Button OnClicked → HandlePinchInput wiring 확인, Poke Interactor 가 IsdkSamplePawn 에 있는지, 버튼이 평가자 손에 닿는 거리인지 (R8 / ADR-007) |

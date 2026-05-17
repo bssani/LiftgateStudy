@@ -49,7 +49,7 @@ Quest 시스템 메뉴의 recenter를 평가 중 누르면 calibration이 깨진
 모든 grab 인터랙션은 ISDK의 `IsdkGrabbableComponent` 기반으로 작성. 자체 pinch detection 작성 금지. SDK 업그레이드 시 호환성 검증 후 진행.
 
 ### R6. HUD (head-locked) UI 금지
-모든 UI는 Wrist Panel 또는 World-space로. Head-locked는 VR 멀미 유발.
+모든 UI는 World-space로. Head-locked는 VR 멀미 유발 (ADR-008 — wrist UI 폐기).
 
 ### R7. 평가 데이터 로깅 금지
 CSV, JSON, 파일 출력 일체 없음. 평가 결과는 평가자 머리 속에만 남는다. 로깅 필요 시 별도 phase로 분리.
@@ -66,7 +66,7 @@ CSV, JSON, 파일 출력 일체 없음. 평가 결과는 평가자 머리 속에
 | 항목 | 규칙 | 예시 |
 |---|---|---|
 | Actor Blueprint | `BP_<Name>` | `BP_Liftgate` |
-| Widget Blueprint | `WBP_<Name>` | `WBP_WristPanel` |
+| Widget Blueprint | `WBP_<Name>` | `WBP_CalibrationCheck` |
 | Material | `M_<Name>` | `M_ZoneTranslucent` |
 | Static Mesh | `SM_<Name>` | `SM_LiftgateHandle` |
 | Level | `L_<Name>` | `L_Vehicle_C1YC` |
@@ -95,9 +95,9 @@ CSV, JSON, 파일 출력 일체 없음. 평가 결과는 평가자 머리 속에
 
 | Phase | 목표 | 산출물 |
 |---|---|---|
-| **Phase 1 — Foundation** | VR 셋업 + Calibration 검증 + 더미 차량 골격 | `L_Main`, `BP_VRPawn`, `WBP_CalibrationCheck`, `WBP_WristPanel` (기본) |
+| **Phase 1 — Foundation** | VR 셋업 + Calibration 검증 + 더미 차량 골격 | `L_Main`, `BP_VRPawn`, `WBP_CalibrationCheck`, `BP_CalibrationGate` |
 | **Phase 2 — Liftgate Core** | `BP_Liftgate` + ISDK grab + Manual-Assist 동작 | Liftgate 잡고 열림, 40° release 시 auto-complete |
-| **Phase 3 — Modes + Zones** | 4가지 mode 전체 + Zone + Height ruler | Wrist UI에서 mode 토글, zone/ruler 표시 |
+| **Phase 3 — Modes + Zones** | 4가지 mode 전체 + Zone + Height ruler | World-space mode toggle widget, zone/ruler 표시 |
 | **Phase 4 — Multi-vehicle + Polish** | CAD alignment + 차량 swap + 시각 피드백 | 차량 N대 swap 가능, 평가자 onboarding |
 
 각 Phase 시작 시 `docs/phase_kickoff/PhaseN_Kickoff.md` 작성. Phase 진행 중 결정 변경은 `docs/decisions/ADR_NNN_<topic>.md`로 박제.
@@ -156,19 +156,18 @@ FloorZTolerance_mm = 5.0       // Floor 검증 허용 오차
    - 초과 → "Re-do Quest boundary" 안내
 5. 모두 OK → 평가 진입
 
-평가 중 Wrist UI에 실시간 HMD Height + Floor Status 상시 표시.
+평가 진입 후 HMD Height / Floor Status 의 실시간 표시는 별도 phase 에서 (필요 시 World-space widget 으로) 재설계 — ADR-008 (Wrist UI 폐기) 참조.
 
 ---
 
 ## 8. UI Conventions
 
-- **Primary UI**: Wrist Panel (좌측 손목, 손바닥 방향 시 visible) — proximity 항상 만족
+- **Primary UI**: World-space widget — 평가자 proximity (정면 30~60cm 또는 적절한 환경 anchor) 내에 배치 (ADR-008 — wrist UI 폐기)
 - **Auxiliary UI**: World-space (차량 옆 height ruler 등)
 - **HUD (head-locked) 금지**
 - 텍스트는 영어 (PQDQ 표준)
 - 모든 UI 는 단위 명시 (`mm`, `deg`)
 - **Interaction**: button poke 기반 (R8 / ADR-007). 버튼은 평가자가 닿을 수 있는 위치에 배치:
-  - Wrist UI = 항상 닿음
   - World-space 버튼 = 평가자 정면 30~60cm 거리, 어깨~허리 높이 권장
   - 멀리 배치된 widget 의 confirm 버튼 → widget 을 평가자 가까이에 배치하거나 ray pointer (Phase 2 이후 검토)
 
@@ -218,7 +217,7 @@ ADR 형식: Context / Decision / Consequences / Date.
 
 ## 12. Versioning
 
-- 현재 버전: **v0.4**
+- 현재 버전: **v0.5**
 - 변경 시 minor bump (v0.1 → v0.2)
 - 큰 구조 변경 (Phase 정의 변경 등)은 major bump
 - 변경 이력은 본 문서 하단 `Change Log` 섹션에 기록
@@ -231,3 +230,4 @@ ADR 형식: Context / Decision / Consequences / Date.
 - **v0.2** (2026-05-13) — Tech stack 버전 확정 (UE 5.5.4, ISDK v78). Path B 셋업 채택.
 - **v0.3** (2026-05-14) — ADR-005 채택: C++ 로직 + BP 레이아웃 hybrid 전환. §2 Tech Stack, §4 Naming Conventions (C++ 추가), §6 Coding Style 갱신.
 - **v0.4** (2026-05-15) — ADR-007 채택: Interaction modality = button poke (no gesture). R8 신규, §8 UI Conventions 보강 (proximity 배치 규칙).
+- **v0.5** (2026-05-15) — ADR-008 채택: WristPanel 폐기. Primary UI = World-space widget. §5 Phase 1 산출물 / §6 Coding Style 일부 / §8 UI Conventions 갱신.
