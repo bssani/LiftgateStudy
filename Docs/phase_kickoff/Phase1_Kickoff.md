@@ -233,7 +233,7 @@ LiftgateStudy/
   - `OnCalibrationComplete` 에 self 의 `HandleComplete()` 바인딩
 - `HandleComplete()`:
   - widget 숨김 또는 self `Destroy()`
-- ISDK Pinch input binding (Status=Pass 일 때만 `RequestComplete()` 호출)
+- Confirm Button OnClicked binding (ADR-007, R8) — WBP_CalibrationCheck 의 Button 이 ISDK Poke Interactor 로 눌리면 `HandlePinchInput()` (역사적 이름, 실제로는 confirm) 호출 → `RequestComplete()` (Status=Pass 일 때만)
 
 #### W1.4.D — BP: WBP_CalibrationCheck (layout)
 - Parent: `UCalibrationCheckWidget`
@@ -249,7 +249,7 @@ LiftgateStudy/
   │                                    │
   │   Status: [CHECKING / PASS / FAIL] │
   │                                    │
-  │   [Pinch to confirm]               │
+  │   [ Confirm ]   (button)           │
   └────────────────────────────────────┘
   ```
 - Text 는 영어 (PQDQ 표준, CLAUDE.md §8). Bind 함수로 C++ UPROPERTY 참조.
@@ -267,7 +267,7 @@ LiftgateStudy/
 - VR 진입 시 widget 이 평가자 정면 1.5m 거리에 표시
 - HMD Height 가 실시간 갱신
 - 잘못된 자세 (앉기, 점프) 시 Fail 표시 + 메시지 분기 정확
-- 정상 자세에서 Pinch → `OnCalibrationComplete` 발행 → BP_CalibrationGate Destroy
+- 정상 자세에서 Confirm 버튼 poke → `OnCalibrationComplete` 발행 → BP_CalibrationGate Destroy
 - UPROPERTY 가 BP child 에서 default 조정 가능
 
 ---
@@ -312,7 +312,7 @@ LiftgateStudy/
   └──────────────────────┘
   ```
 - Recalibrate 버튼 OnClicked → `OnRecalibrateClicked()` 호출
-- 버튼은 ISDK poke 또는 pinch interaction 으로 동작 (R5)
+- 버튼은 **ISDK Poke Interactor** 로 동작 (R8 / ADR-007)
 
 #### W1.5.C — BP_VRPawn 에서 binding
 - `WristUIAnchor` WidgetComponent (ADR-004 W1.2 에서 추가됨) 의 Widget Class = `WBP_WristPanel`
@@ -352,11 +352,12 @@ LiftgateStudy/
 
 | ADR | 주제 | 본 Phase 영향 |
 |---|---|---|
-| ADR-001 | ISDK 기반 Hand Grab | W1.2, W1.4 Pinch, W1.5 Recalibrate 버튼 — 모두 ISDK 사용 |
+| ADR-001 | ISDK 기반 Hand Grab | Phase 2 grab interaction (Phase 1 직접 사용 없음) |
 | ADR-002 | Mode 자유 토글 | Phase 1 범위 외, 차량 metadata 단순화 |
 | ADR-003 | 평가 데이터 로깅 없음 | 모든 W 에서 파일 출력 금지 |
 | ADR-004 | BP_VRPawn = IsdkSamplePawn child | W1.2 의 hand rig migrate 제거 |
 | ADR-005 | C++ 로직 + BP 레이아웃 hybrid | W1.1 module bootstrap, W1.4 / W1.5 C++ widget base |
+| ADR-007 | Button poke 기반 confirmation | W1.4 Confirm 버튼, W1.5 Recalibrate 버튼 — gesture / pinch 금지 |
 
 ---
 
@@ -370,7 +371,7 @@ Phase 1 완료 시점 산출물:
    - `UCalibrationCheckWidget`, `ACalibrationGateActor`, `ECalibrationStatus`
    - `UWristPanelWidget`
 3. **Working build**: PIE (Play In Editor) 또는 VR Preview 에서:
-   - VR 진입 → Calibration Check → Pinch 확인 → 더미 차량 앞에 위치
+   - VR 진입 → Calibration Check → Confirm 버튼 poke → 더미 차량 앞에 위치
    - Wrist UI 손바닥 방향 따라 visible/hidden
    - Recalibrate 동작
 4. **README.md** — Phase 1 완료 상태, 셋업 방법, 알려진 이슈 명시
@@ -386,7 +387,7 @@ Phase 1 완료 보고 시 사용자가 직접 확인할 항목:
 - [ ] HMD Height 값이 평가자 실제 키와 일치 (±5cm)
 - [ ] Floor Z difference가 0±5mm
 - [ ] Calibration Fail 시 안내 메시지 적절히 표시
-- [ ] Pinch로 calibration 통과 동작
+- [ ] Confirm 버튼 poke 로 calibration 통과 동작 (Phase 1 검증 중에는 keyboard Space 임시 사용 허용)
 - [ ] Wrist UI가 손바닥 방향 따라 visible/hidden 전환
 - [ ] Recalibrate 버튼 동작
 - [ ] 더미 차량 박스가 정상 비례 (어깨 높이쯤)

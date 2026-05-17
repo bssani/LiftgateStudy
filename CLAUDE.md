@@ -54,6 +54,9 @@ Quest 시스템 메뉴의 recenter를 평가 중 누르면 calibration이 깨진
 ### R7. 평가 데이터 로깅 금지
 CSV, JSON, 파일 출력 일체 없음. 평가 결과는 평가자 머리 속에만 남는다. 로깅 필요 시 별도 phase로 분리.
 
+### R8. Confirmation = Button Poke (No Gesture)
+모든 confirmation / discrete 입력 (calibration pass, mode toggle, recalibrate 등) 은 **button poke 기반** (ADR-007). 자체 pose / gesture / pinch detection 작성 금지. ISDK pinch detection 은 **grab interaction** (R5 / ADR-001) 에만 사용. 버튼은 평가자가 닿을 수 있는 위치에 배치 (§8).
+
 ---
 
 ## 4. Naming Conventions
@@ -159,11 +162,15 @@ FloorZTolerance_mm = 5.0       // Floor 검증 허용 오차
 
 ## 8. UI Conventions
 
-- **Primary UI**: Wrist Panel (좌측 손목, 손바닥 방향 시 visible)
+- **Primary UI**: Wrist Panel (좌측 손목, 손바닥 방향 시 visible) — proximity 항상 만족
 - **Auxiliary UI**: World-space (차량 옆 height ruler 등)
 - **HUD (head-locked) 금지**
 - 텍스트는 영어 (PQDQ 표준)
-- 모든 UI는 단위 명시 (`mm`, `deg`)
+- 모든 UI 는 단위 명시 (`mm`, `deg`)
+- **Interaction**: button poke 기반 (R8 / ADR-007). 버튼은 평가자가 닿을 수 있는 위치에 배치:
+  - Wrist UI = 항상 닿음
+  - World-space 버튼 = 평가자 정면 30~60cm 거리, 어깨~허리 높이 권장
+  - 멀리 배치된 widget 의 confirm 버튼 → widget 을 평가자 가까이에 배치하거나 ray pointer (Phase 2 이후 검토)
 
 ---
 
@@ -211,7 +218,7 @@ ADR 형식: Context / Decision / Consequences / Date.
 
 ## 12. Versioning
 
-- 현재 버전: **v0.3**
+- 현재 버전: **v0.4**
 - 변경 시 minor bump (v0.1 → v0.2)
 - 큰 구조 변경 (Phase 정의 변경 등)은 major bump
 - 변경 이력은 본 문서 하단 `Change Log` 섹션에 기록
@@ -223,3 +230,4 @@ ADR 형식: Context / Decision / Consequences / Date.
 - **v0.1** (2026-05-13) — Initial draft. Phase 1~4 정의, Critical Rules R1~R7, Liftgate Modes 4종 확정.
 - **v0.2** (2026-05-13) — Tech stack 버전 확정 (UE 5.5.4, ISDK v78). Path B 셋업 채택.
 - **v0.3** (2026-05-14) — ADR-005 채택: C++ 로직 + BP 레이아웃 hybrid 전환. §2 Tech Stack, §4 Naming Conventions (C++ 추가), §6 Coding Style 갱신.
+- **v0.4** (2026-05-15) — ADR-007 채택: Interaction modality = button poke (no gesture). R8 신규, §8 UI Conventions 보강 (proximity 배치 규칙).
