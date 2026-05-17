@@ -38,9 +38,9 @@ void ACalibrationGateActor::BeginPlay()
 	}
 }
 
-void ACalibrationGateActor::HandlePinchInput()
+void ACalibrationGateActor::HandleConfirm()
 {
-	// BP 의 ISDK pinch input action → 본 UFUNCTION 으로 라우팅 (R5)
+	// BP 의 Confirm 버튼 OnClicked → 본 UFUNCTION 으로 라우팅 (R8 / ADR-007)
 	if (CachedWidget)
 	{
 		CachedWidget->RequestComplete();
