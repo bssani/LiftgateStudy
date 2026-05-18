@@ -130,9 +130,25 @@
 
 ---
 
-## W3.5 — Widget BP Children
+## W3.5 — Session UI Widget (ADR-013)
 
-### W3.5.A — WBP_TestProgress
+> ADR-013 채택: top-level widget 은 `WBP_SessionUI` 1 종 (umbrella). 내부 WidgetSwitcher 가 3 inner panel 을 phase 따라 전환.
+
+### W3.5.A — WBP_SessionUI (umbrella, ADR-013) — 신규
+
+- [ ] Content/UI/ → Widget Blueprint
+- [ ] Parent: `SessionUIWidget` (C++ class, 신규 — 후속 PR 에서 scaffolding)
+- [ ] 이름: `WBP_SessionUI`
+- [ ] Designer: WidgetSwitcher (root child)
+  - [ ] Slot 0: `WBP_TestProgress` instance (Child Widget)
+  - [ ] Slot 1: `WBP_Comparison` instance
+  - [ ] Slot 2: `WBP_FinalRanking` instance
+- [ ] Event Graph (또는 C++ NativeOnInitialized):
+  - [ ] BeginPlay / Construct → `UEvaluationSessionSubsystem` 의 `OnPhaseChanged` subscribe
+  - [ ] Phase 매핑: Test1~Test4 → SetActiveWidgetIndex(0), Compare1v2 → 1, FinalRanking → 2, Idle/WritingLog → Visibility=Collapsed
+- [ ] 활성 panel 의 reference 를 panel C++ base 로 cast → `RefreshFromSubsystem()` 호출 (필요 시 추후 추가)
+
+### W3.5.B — WBP_TestProgress (inner panel)
 
 - [ ] Content/UI/ → Widget Blueprint
 - [ ] Parent: `TestProgressWidget` (C++ class)
@@ -143,8 +159,9 @@
   - [ ] Button_Previous.Visibility = Bind to function `ShouldShowPrevious()`
   - [ ] Button_Next OnClicked → Self.OnNextClicked() (UFUNCTION)
   - [ ] Button_Previous OnClicked → Self.OnPreviousClicked()
+- [ ] **Top-level placement 없음** — WBP_SessionUI 의 WidgetSwitcher slot 0 에 instance 로만 사용
 
-### W3.5.B — WBP_Comparison
+### W3.5.C — WBP_Comparison (inner panel)
 
 - [ ] Parent: `ComparisonWidget`, 이름 `WBP_Comparison`
 - [ ] Designer: Vertical Box
@@ -152,17 +169,19 @@
   - [ ] HorizontalBox: Button_1, Button_2
   - [ ] Button_1 OnClicked → Self.OnChoice1Clicked()
   - [ ] Button_2 OnClicked → Self.OnChoice2Clicked()
+- [ ] Top-level placement 없음 — WBP_SessionUI 의 slot 1
 
-### W3.5.C — WBP_FinalRanking
+### W3.5.D — WBP_FinalRanking (inner panel)
 
 - [ ] Parent: `FinalRankingWidget`, 이름 `WBP_FinalRanking`
 - [ ] Designer: Vertical Box
   - [ ] TextBlock_Instruction → "좋은 순서로 클릭하세요"
   - [ ] Grid 또는 HorizontalBox: Button_1, Button_2, Button_3, Button_4
-  - [ ] 각 버튼 자식 TextBlock → Bind to `GetButtonLabel(index)` (returns "[1] Pick #1" 등)
+  - [ ] 각 버튼 자식 TextBlock → Bind to `GetRankLabel(index)` (returns "1순위" 등)
   - [ ] 각 버튼 IsEnabled → Bind to `IsButtonEnabled(index)`
   - [ ] 각 버튼 OnClicked → Self.OnRankButtonClicked(index)
   - [ ] Button_Reset OnClicked → Self.OnResetClicked()
+- [ ] Top-level placement 없음 — WBP_SessionUI 의 slot 2
 
 ---
 
@@ -175,10 +194,16 @@
 - [ ] 위치: PlayerStart 정면 약 3m, Z=0 (차량이 평가자 정면 멀리 보이도록)
 - [ ] EvaluationSessionSubsystem 에서 이 anchor 의 World Transform 을 spawn 기준점으로 사용
 
-### W3.6.B — Widget anchors
+### W3.6.B — Session UI anchor (ADR-013)
 
-- [ ] 3 widget 의 World-space 표시 위치: 평가자 정면 1.5m, Z=1.5m
-- [ ] L_Main 에 widget host actor (1 개) 배치 → Subsystem 이 phase 따라 widget swap
+- [ ] `BP_SessionUIAnchor` 1 개 L_Main 에 배치 (단일 host — phase swap 은 widget 내부 switcher 가 담당)
+- [ ] 위치: PlayerStart 우측 +50cm, 정면 +20cm, Z=120cm (chest height)
+- [ ] Rotation: widget normal 이 pawn 쪽 (slight inward yaw, 예: PlayerStart 정면이 +X 면 widget 의 yaw 는 -100° ~ -110° 정도로 pawn 쪽으로 살짝 기울임)
+- [ ] 검증: pawn 이 PlayerStart 에 서서 정면 (liftgate 방향) 을 바라볼 때
+  - [ ] Widget 이 시각 정면을 가리지 않음 (peripheral 가능)
+  - [ ] 손가락으로 widget 의 모든 버튼 poke 가능 (팔 뻗기로 닿음)
+  - [ ] Liftgate grab 시 widget 이 시야 / 손 동선 방해 안 함
+- [ ] Anchor Transform 은 `BP_SessionUIAnchor` 의 UPROPERTY 로 노출 (Class Defaults 에서 평가자 피드백 따라 조정)
 
 ### W3.6.C — Session 시작
 
@@ -234,7 +259,9 @@
 |---|---|
 | C++ 컴파일 실패 | `.Build.cs` 에 `Json`, `JsonUtilities`, `DeveloperSettings` 추가했는지 |
 | Vehicle spawn 안 됨 | DA_TestSet_Default 의 entry 확인, Subsystem 의 SpawnActor 호출 시 World 가 valid 한지 |
-| Phase 전환 안 됨 | OnPhaseChanged 가 broadcast 되는지 (print log), widget 의 binding 확인 |
+| Phase 전환 안 됨 | OnPhaseChanged 가 broadcast 되는지 (print log), `WBP_SessionUI` 의 WidgetSwitcher SetActiveWidgetIndex 호출 확인 (ADR-013) |
+| Liftgate 조작 시 widget 이 가림 | `BP_SessionUIAnchor` 의 Transform 조정 — 더 옆으로 / 더 뒤로 / 더 낮게 (ADR-013 D2) |
+| Widget 의 버튼이 손에 안 닿음 | Anchor 가 너무 멀거나 높음 — pawn standing position 에서 팔 뻗어 30~60cm 거리로 조정 |
 | Comparison click 안 잡힘 | World-space Button 의 Poke Interactor 거리 (R8), button 의 OnClicked binding |
 | Final Ranking 버튼 안 잠김 | C++ `IsButtonEnabled(i)` 가 `IsRanked(i)` 의 반대값 반환하는지 |
 | JSON 저장 실패 | Saved/ 디렉토리 권한, FFileHelper return 값, `MakeDirectory(..., true)` 호출 |
