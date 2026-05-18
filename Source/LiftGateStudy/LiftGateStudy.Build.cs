@@ -24,6 +24,9 @@ public class LiftGateStudy : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
+			// Phase 3 의 JSON 결과 logging (ADR-006)
+			"Json",
+			"JsonUtilities"
 			// ISDK / Meta XR API 를 직접 호출하게 되면 여기 추가:
 			// "OculusXRHMD", "MetaXRInteraction" 등 (ADR-001, R5)
 		});
