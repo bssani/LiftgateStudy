@@ -20,8 +20,9 @@ int32 UTestProgressWidget::GetCurrentTestNumber() const
 {
 	if (UEvaluationSessionSubsystem* Session = GetSession(this))
 	{
-		const int32 Slot = Session->GetCurrentSlotIndex();
-		return (Slot >= 0) ? (Slot + 1) : 0;
+		// 'Slot' 은 UWidget::Slot (base class member) 와 이름 충돌 → SlotIndex 사용
+		const int32 SlotIndex = Session->GetCurrentSlotIndex();
+		return (SlotIndex >= 0) ? (SlotIndex + 1) : 0;
 	}
 	return 0;
 }
