@@ -39,8 +39,8 @@ Source/LiftGateStudy/
 │   ├── Calibration/    (Phase 1)
 │   ├── Liftgate/
 │   │   ├── LiftgateTypes.h         (ELiftgateMode + ELiftgateState + Phase 3 의 FVehicleTestEntry, EEvaluationPhase 추가)
-│   │   ├── Liftgate.h              (4 mode 모두 지원, Power button trigger API 추가)
-│   │   └── PowerButtonActor.h      (Phase 3 신규: Power-Auto / Power-Hybrid 용)
+│   │   └── Liftgate.h              (4 mode 모두 지원, Power button trigger API 추가)
+│   │   # PowerButtonActor.h/.cpp 는 ADR-012 로 제거됨 — BP_PowerButton 이 BigRedButton (ISDK plugin BP) 의 child 로 작성
 │   ├── Session/                    (Phase 3 신규)
 │   │   ├── VehicleTestSet.h        (UDataAsset)
 │   │   └── EvaluationSessionSubsystem.h
@@ -58,7 +58,7 @@ Content/
 │   ├── BP_Liftgate_Manual.uasset         (Phase 3 신규, ManualFull 또는 ManualAssist 의 base)
 │   ├── BP_Liftgate_PowerAuto.uasset      (Phase 3 신규)
 │   ├── BP_Liftgate_PowerHybrid.uasset    (Phase 3 신규)
-│   └── BP_PowerButton.uasset             (Phase 3 신규, Power-Auto / Hybrid 용)
+│   └── BP_PowerButton.uasset             (Phase 3 신규, BigRedButton (ISDK plugin BP) 의 child — ADR-012)
 ├── UI/
 │   ├── WBP_CalibrationCheck.uasset       (Phase 1)
 │   ├── WBP_TestProgress.uasset           (Phase 3)
@@ -125,26 +125,32 @@ AutoOpening (target = MaxAngle_deg) — Threshold 이상이면
 
 ---
 
-### W3.2 — Power Button Actor
+### W3.2 — Power Button (BP_PowerButton, BigRedButton 의 child) — ADR-012
 
-```cpp
-UCLASS(Blueprintable)
-class LIFTGATESTUDY_API APowerButtonActor : public AActor
-{
-    UPROPERTY(EditAnywhere)
-    TObjectPtr<UWidgetComponent> ButtonWidgetComp;   // World-space button widget
+**ADR-012 채택**으로 `APowerButtonActor` C++ 클래스는 제거. `BP_PowerButton` 은 ISDK plugin BP `BigRedButton` (`Plugins/OculusInteractionSamples/Content/Objects/Props/BigRedButton/BigRedButton.uasset`) 의 child Blueprint.
 
-    UPROPERTY(EditAnywhere)
-    TObjectPtr<ALiftgate> TargetLiftgate;            // Editor 또는 spawn 시 setter
+**BP_PowerButton (BigRedButton ⊂)**:
+- **Variables** (BP 에서 추가):
+  - `TargetLiftgate` (`ALiftgate*`, `Category="PowerButton"`, Instance Editable, Expose On Spawn)
+- **Event Graph** (BigRedButton parent 의 셋업 + 본 추가):
+  - parent 의 `InteractorPointerEvent` 구독
+  - `Break Isdk Interaction Pointer Event` → `Type == Select` 분기 → `TargetLiftgate.RequestPowerOpen()` 호출
+  - `Enable Debug Output` flag → false (parent 의 Print 디버그 무음)
 
-    UFUNCTION(BlueprintCallable)
-    void OnButtonClicked();   // → TargetLiftgate->RequestPowerOpen()
-};
-```
+**Spawn 책임**:
+- PowerAuto / PowerHybrid vehicle 의 spawn 시 `BP_PowerButton` 도 함께 spawn
+- `TargetLiftgate` 를 SpawnActor 시 해당 ALiftgate instance 로 set (Expose On Spawn 으로 wiring)
+- spawn 위치: 차량 옆 평가자 정면 30~60cm, 어깨~허리 높이 (CLAUDE.md §8) — `BP_Liftgate_PowerAuto` / `_PowerHybrid` 의 Construction Script 또는 Level 직접 배치
 
-BP child `BP_PowerButton` — World-space button widget (R8 / ADR-007, button poke).
+**라우팅**:
+| 책임 | 위치 |
+|---|---|
+| Poke detection | ISDK PokeInteractable (BigRedButton 내장) |
+| 시각 / audio 피드백 | BigRedButton parent (StateChanged → color, PokePressCue / PokeReleaseCue) |
+| Select event 분기 | BP_PowerButton Event Graph (Select type 만 처리) |
+| Liftgate 상태 머신 | `ALiftgate::RequestPowerOpen()` (C++) |
 
-PowerAuto / PowerHybrid vehicle 의 spawn 시 함께 spawn (BP_Liftgate variant 가 자기 옆에 BP_PowerButton 배치).
+ADR-007 (button poke) 의 구체화 — ISDK native pipeline 활용으로 UMG OnClicked 우회 제거.
 
 ---
 
@@ -288,6 +294,7 @@ void UEvaluationSessionSubsystem::WriteSessionLog()
 | ADR-009 | ALiftgate root pattern | **prereq** — PR1 |
 | ADR-010 | Vehicle Test Set Data Asset | **핵심** — UVehicleTestSet |
 | ADR-011 | Comparison-based Test Session | **핵심** — Subsystem 상태 머신 |
+| ADR-012 | BP_PowerButton ⊂ BigRedButton | **W3.2 / W3.3 갱신** — APowerButtonActor 제거, ISDK plugin BP 의 child 로 |
 
 ---
 
@@ -295,15 +302,15 @@ void UEvaluationSessionSubsystem::WriteSessionLog()
 
 1. **C++**:
    - `ALiftgate` 4 mode 지원 + RequestPowerOpen API
-   - `APowerButtonActor`
    - `FVehicleTestEntry`, `UVehicleTestSet`
    - `EEvaluationPhase`, `UEvaluationSessionSubsystem` (JSON writer 포함)
    - `UTestProgressWidget`, `UComparisonWidget`, `UFinalRankingWidget`
+   - (ADR-012 — `APowerButtonActor` 는 deliverable 에서 제외, 별도 PR 에서 코드 삭제 정리)
 2. **BP**:
    - `BP_Liftgate_Manual` (ManualFull 또는 ManualAssist 의 base)
    - `BP_Liftgate_PowerAuto`
    - `BP_Liftgate_PowerHybrid`
-   - `BP_PowerButton`
+   - `BP_PowerButton` (parent = `BigRedButton`, ISDK plugin BP — ADR-012)
    - `WBP_TestProgress`, `WBP_Comparison`, `WBP_FinalRanking`
 3. **Data**:
    - `DA_TestSet_Default` (UVehicleTestSet 자산)
@@ -377,13 +384,13 @@ void UEvaluationSessionSubsystem::WriteSessionLog()
 2. **PR 2** (현재) — 본 문서 + ADR-006/009/010/011 + CLAUDE.md v0.6 + Phase3_Checklist.md
 3. **PR 3** — C++ scaffolding 일괄:
    - ALiftgate 4 mode 지원 + RequestPowerOpen
-   - APowerButtonActor
    - FVehicleTestEntry, UVehicleTestSet
    - UEvaluationSessionSubsystem + JSON writer
    - 3 widget C++ bases
+   - (ADR-012 후속) APowerButtonActor 코드 삭제 정리
 4. **사용자 작업** (PR 3 머지 후, Editor 에서):
    - BP_Liftgate_Manual / _PowerAuto / _PowerHybrid 4 variant 생성
-   - BP_PowerButton 생성
+   - BP_PowerButton 생성 (parent = `BigRedButton`, ADR-012)
    - WBP_TestProgress / _Comparison / _FinalRanking 생성
    - DA_TestSet_Default 자산 만들기
    - L_Main 에 spawn anchor 배치 + GameMode 또는 별도 actor 가 StartSession() 호출
@@ -398,7 +405,7 @@ void UEvaluationSessionSubsystem::WriteSessionLog()
 | Vehicle spawn 안 됨 | `DA_TestSet_Default` 의 LiftgateClass 가 valid 한 BP class 인지, Subsystem 의 SpawnActor 호출 시 transform 이 valid 한지 |
 | Phase 전환 안 됨 | Subsystem 의 OnPhaseChanged 가 broadcast 되는지, widget 이 구독하는지 |
 | JSON 저장 안 됨 | `Saved/EvaluationLogs/` 디렉토리 자동 생성 코드, FFileHelper::SaveStringToFile 의 return 값 |
-| Power button click 안 잡힘 | World-space WidgetComponent 의 Poke Interactor 설정, button poke 거리 |
+| Power button click 안 잡힘 | BP_PowerButton 의 parent (`BigRedButton`) 가 ISDK PokeInteractable 셋업을 가지고 있는지, BP_PowerButton 의 Event Graph 에서 `Select` type 분기가 정확한지, `TargetLiftgate` ref 가 spawn 시 set 됐는지 (ADR-012) |
 | Power-Hybrid 의 handoff 안 일어남 | `PowerHybridHandoffAngle_deg` 의 값, Tick 의 AutoOpening 끝 state 전환 로직 |
 | 세션 자동 reset 안 됨 | ConfirmSession 의 끝에서 ResetState() 호출, OnPhaseChanged broadcast |
 
