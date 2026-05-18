@@ -45,9 +45,10 @@ Source/LiftGateStudy/
 │   │   ├── VehicleTestSet.h        (UDataAsset)
 │   │   └── EvaluationSessionSubsystem.h
 │   └── UI/                         (Phase 3 신규)
-│       ├── TestProgressWidget.h
-│       ├── ComparisonWidget.h
-│       └── FinalRankingWidget.h
+│       ├── SessionUIWidget.h           (ADR-013, umbrella + WidgetSwitcher)
+│       ├── TestProgressWidget.h       (umbrella 의 inner panel)
+│       ├── ComparisonWidget.h         (umbrella 의 inner panel)
+│       └── FinalRankingWidget.h       (umbrella 의 inner panel)
 └── Private/  (대응 .cpp)
 
 Content/
@@ -58,12 +59,14 @@ Content/
 │   ├── BP_Liftgate_Manual.uasset         (Phase 3 신규, ManualFull 또는 ManualAssist 의 base)
 │   ├── BP_Liftgate_PowerAuto.uasset      (Phase 3 신규)
 │   ├── BP_Liftgate_PowerHybrid.uasset    (Phase 3 신규)
-│   └── BP_PowerButton.uasset             (Phase 3 신규, BigRedButton (ISDK plugin BP) 의 child — ADR-012)
+│   ├── BP_PowerButton.uasset             (Phase 3 신규, BigRedButton (ISDK plugin BP) 의 child — ADR-012)
+│   └── BP_SessionUIAnchor.uasset         (Phase 3 신규, ADR-013 — L_Main 에 배치하는 Session UI anchor actor)
 ├── UI/
 │   ├── WBP_CalibrationCheck.uasset       (Phase 1)
-│   ├── WBP_TestProgress.uasset           (Phase 3)
-│   ├── WBP_Comparison.uasset             (Phase 3)
-│   └── WBP_FinalRanking.uasset           (Phase 3)
+│   ├── WBP_SessionUI.uasset              (Phase 3, ADR-013 — umbrella + WidgetSwitcher)
+│   ├── WBP_TestProgress.uasset           (Phase 3, WBP_SessionUI 의 inner panel)
+│   ├── WBP_Comparison.uasset             (Phase 3, inner panel)
+│   └── WBP_FinalRanking.uasset           (Phase 3, inner panel)
 ├── DataAssets/                            (Phase 3 신규 폴더)
 │   └── DA_TestSet_Default.uasset
 └── Maps/
@@ -216,34 +219,50 @@ Spawn anchor: `L_Main` 의 정해진 위치 (`PlayerStart` 정면 약 3m, Z=0). 
 
 ---
 
-### W3.5 — Widgets (3 종)
+### W3.5 — Session UI Widget (단일 umbrella + WidgetSwitcher) — ADR-013
 
-#### WBP_TestProgress (C++ base: UTestProgressWidget)
+**ADR-013 채택**: top-level widget 은 `WBP_SessionUI` 1 종 (umbrella). 내부 WidgetSwitcher 가 3 panel 을 phase 따라 전환. Calibration widget 까지 합쳐 **총 widget 2 종** (Calibration + SessionUI).
+
+#### WBP_SessionUI (C++ base: USessionUIWidget) — 신규
+
+- WidgetSwitcher 1 개 + panel 3 개 (slot 0 = TestProgress, 1 = Comparison, 2 = FinalRanking)
+- `OnPhaseChanged` 단일 subscribe → switcher active index 매핑:
+  - `Test1`~`Test4` → slot 0
+  - `Compare1v2` → slot 1
+  - `FinalRanking` → slot 2
+  - `Idle` / `WritingLog` → hidden (Collapsed)
+- Subsystem reference 1 회 cache, panel 에 propagate
+
+#### Panel 1: TestProgress (C++ base: UTestProgressWidget) — 기존 유지
 
 - 표시: "테스트 N" 큰 텍스트 (N=1~4)
-- Buttons: 
+- Buttons:
   - Previous (Test 2 / Test 4 에서만 visible) → Subsystem.RequestPrevious()
   - Next → Subsystem.RequestNext()
-- World-space placement (ADR-008): 평가자 정면 1.5m, 어깨 높이
 
-#### WBP_Comparison (C++ base: UComparisonWidget)
+#### Panel 2: Comparison (C++ base: UComparisonWidget) — 기존 유지
 
 - 표시: "둘 중 어느 것이 더 좋습니까?" + "1" "2" 두 버튼
 - Click 1 → Subsystem.RequestComparisonChoice(0)
 - Click 2 → Subsystem.RequestComparisonChoice(1)
 - 즉시 다음 phase
 
-#### WBP_FinalRanking (C++ base: UFinalRankingWidget)
+#### Panel 3: FinalRanking (C++ base: UFinalRankingWidget) — 기존 유지
 
 - 표시: "좋은 순서로 클릭하세요" + 4 버튼 ([1] [2] [3] [4]) + Reset 버튼
-- 버튼 클릭 시: 
+- 버튼 클릭 시:
   - Subsystem.AddRanking(vehicleIndex)
   - Subsystem.GetRankOrder(vehicleIndex) 로 순서 (1~4) 시각 표시 (텍스트 또는 색 변경)
   - 해당 버튼 disabled (재클릭 방지)
 - 4 개 모두 ranked 시: 자동 ConfirmSession() 호출 → JSON write → 세션 reset → Test 1 로 복귀
 - Reset 버튼: Subsystem.ResetRanking() → 4 버튼 모두 enabled, 순서 비움
 
-각 widget 의 visibility 는 `OnPhaseChanged` 구독으로 자동 토글.
+#### Placement (ADR-013 D2)
+
+- World-space, fixed in world (pawn attach 아님 — R6 / ADR-008)
+- Default: `PlayerStart` 우측 +50cm, 정면 +20cm, Z=120cm (chest height). Widget normal 이 pawn 쪽 (slight inward yaw)
+- **Liftgate 시야선 outside** — pawn 이 vehicle (정면 3m) 보는 동안 peripheral vision 으로 인식, 직접 가리지 않음
+- Configurable: `BP_SessionUIAnchor` 의 Transform UPROPERTY (또는 session driver) 로 노출. 평가자 피드백 따라 조정
 
 ---
 
@@ -267,8 +286,8 @@ void UEvaluationSessionSubsystem::WriteSessionLog()
 ### W3.7 — L_Main Integration
 
 - [ ] L_Main 에 Session driver 배치 (또는 BP_LiftgateStudyGameMode 의 BeginPlay 에서 Subsystem.StartSession() 호출)
-- [ ] Spawn anchor: World-space 정해진 위치 (PlayerStart 정면 3m)
-- [ ] 3 widget 의 World-space spawn anchor 도 정의 (평가자 정면 1.5m, 어깨 높이)
+- [ ] Vehicle spawn anchor: World-space 정해진 위치 (PlayerStart 정면 3m)
+- [ ] **Session UI anchor (ADR-013)**: `BP_SessionUIAnchor` 1 개 배치, PlayerStart 우측 +50cm, 정면 +20cm, Z=120cm. Widget normal 이 pawn 쪽
 - [ ] DA_TestSet_Default 참조 — GameMode 또는 GameInstance 에 UPROPERTY
 
 ---
@@ -295,6 +314,7 @@ void UEvaluationSessionSubsystem::WriteSessionLog()
 | ADR-010 | Vehicle Test Set Data Asset | **핵심** — UVehicleTestSet |
 | ADR-011 | Comparison-based Test Session | **핵심** — Subsystem 상태 머신 |
 | ADR-012 | BP_PowerButton ⊂ BigRedButton | **W3.2 / W3.3 갱신** — APowerButtonActor 제거, ISDK plugin BP 의 child 로 |
+| ADR-013 | Session UI single umbrella | **W3.5 / W3.7 갱신** — 3 top-level widget → 1 umbrella + WidgetSwitcher. Pawn 측면 placement |
 
 ---
 
@@ -304,14 +324,16 @@ void UEvaluationSessionSubsystem::WriteSessionLog()
    - `ALiftgate` 4 mode 지원 + RequestPowerOpen API
    - `FVehicleTestEntry`, `UVehicleTestSet`
    - `EEvaluationPhase`, `UEvaluationSessionSubsystem` (JSON writer 포함)
-   - `UTestProgressWidget`, `UComparisonWidget`, `UFinalRankingWidget`
+   - `USessionUIWidget` (ADR-013, umbrella)
+   - `UTestProgressWidget`, `UComparisonWidget`, `UFinalRankingWidget` (inner panel base, 기존 유지)
    - (ADR-012 — `APowerButtonActor` 는 deliverable 에서 제외, 별도 PR 에서 코드 삭제 정리)
 2. **BP**:
    - `BP_Liftgate_Manual` (ManualFull 또는 ManualAssist 의 base)
    - `BP_Liftgate_PowerAuto`
    - `BP_Liftgate_PowerHybrid`
    - `BP_PowerButton` (parent = `BigRedButton`, ISDK plugin BP — ADR-012)
-   - `WBP_TestProgress`, `WBP_Comparison`, `WBP_FinalRanking`
+   - `BP_SessionUIAnchor` (ADR-013, World-space anchor actor for Session UI)
+   - `WBP_SessionUI` (umbrella), `WBP_TestProgress`, `WBP_Comparison`, `WBP_FinalRanking` (inner panel)
 3. **Data**:
    - `DA_TestSet_Default` (UVehicleTestSet 자산)
 4. **Level**:
