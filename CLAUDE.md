@@ -219,7 +219,7 @@ ADR 형식: Context / Decision / Consequences / Date.
 
 ## 12. Versioning
 
-- 현재 버전: **v0.6**
+- 현재 버전: **v0.7**
 - 변경 시 minor bump (v0.1 → v0.2)
 - 큰 구조 변경 (Phase 정의 변경 등)은 major bump
 - 변경 이력은 본 문서 하단 `Change Log` 섹션에 기록
@@ -234,3 +234,4 @@ ADR 형식: Context / Decision / Consequences / Date.
 - **v0.4** (2026-05-15) — ADR-007 채택: Interaction modality = button poke (no gesture). R8 신규, §8 UI Conventions 보강 (proximity 배치 규칙).
 - **v0.5** (2026-05-15) — ADR-008 채택: WristPanel 폐기. Primary UI = World-space widget. §5 Phase 1 산출물 / §6 Coding Style 일부 / §8 UI Conventions 갱신.
 - **v0.6** (2026-05-18) — ADR-006 (Evaluation Result Logging, ADR-003 partial supersede), ADR-009 (ALiftgate root pattern), ADR-010 (Vehicle Test Set as Data Asset), ADR-011 (Comparison-based Test Session). R7 수정 (결과 logging 허용, 세부 데이터 금지). §5 Phase Plan 재편 (Phase 3 가 multi-vehicle + comparison + logging 통합, 이전 Phase 4 Multi-vehicle / Phase 5 Logging 통합됨).
+- **v0.7** (2026-05-18) — ADR-012 채택: `BP_PowerButton` 이 `BigRedButton` (ISDK plugin BP) 의 child. `APowerButtonActor` C++ 클래스는 Phase 3 deliverable 에서 제외 (별도 PR 에서 코드 삭제). ADR-007 (button poke) 의 구체화 — ISDK native pipeline 활용.

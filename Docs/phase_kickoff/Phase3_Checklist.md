@@ -72,7 +72,11 @@
 - [ ] Parent = `Liftgate`, 이름 `BP_Liftgate_PowerAuto`
 - [ ] CurrentMode = PowerAuto
 - [ ] (선택) IsdkGrabbable / IsdkGrabTransformer 제거 (Power-Auto 는 grab 무효) — 또는 그대로 두고 mode 가 grab 무시
-- [ ] Power button 추가 — Construction Script 에서 `BP_PowerButton` actor spawn + link, 또는 별도로 Level 에 배치 (Editor 작업, W3.7)
+- [ ] Power button 추가 (ADR-012):
+  - [ ] Construction Script 에서 `BP_PowerButton` (BigRedButton ⊂) SpawnActor — `TargetLiftgate` = self
+  - [ ] Spawn transform: 차량 옆, 평가자 정면 30~60cm, 어깨~허리 높이 (CLAUDE.md §8)
+  - [ ] 또는 BP_Liftgate_PowerAuto 의 Components 에 BP_PowerButton 을 child actor 로 배치, BeginPlay 에서 `TargetLiftgate` set
+  - [ ] 또는 Level 에 직접 배치 (W3.7) — `TargetLiftgate` 를 Editor 에서 수동 wiring
 
 ### W3.2.D — BP_Liftgate_PowerHybrid
 
@@ -80,21 +84,30 @@
 - [ ] CurrentMode = PowerHybrid
 - [ ] PowerHybridHandoffAngle_deg = 30 (또는 평가자 피드백 따라)
 - [ ] IsdkGrabbable / IsdkGrabTransformer 셋업 (PowerHybrid 도 grab 사용)
-- [ ] Power button 추가 (위와 동일)
+- [ ] Power button 추가 — ADR-012, W3.2.C 와 동일 방식 (TargetLiftgate = self)
 
 ---
 
-## W3.3 — BP_PowerButton
+## W3.3 — BP_PowerButton (ADR-012 — BigRedButton 의 child)
 
-- [ ] Content/Blueprints/ → Blueprint Class → Parent: `PowerButtonActor`
+> ADR-012 채택: `APowerButtonActor` C++ 제거. `BP_PowerButton` 은 ISDK plugin BP `BigRedButton` (`Plugins/OculusInteractionSamples/Content/Objects/Props/BigRedButton/BigRedButton.uasset`) 의 child Blueprint.
+
+- [ ] Content/Blueprints/ → Blueprint Class → All Classes → Parent 선택 창에서 `BigRedButton` 검색 → 채택
 - [ ] 이름: `BP_PowerButton`
-- [ ] Components:
-  - [ ] ButtonWidgetComp 의 Widget Class 지정 (간단한 "Power" 버튼 widget, 별도 WBP)
-  - [ ] World-space (R8 / ADR-008)
-  - [ ] Draw Size 적절 (예: 100×100)
-- [ ] Event Graph:
-  - [ ] Button 의 OnClicked → Self.OnButtonClicked() 호출 (C++ UFUNCTION)
-- [ ] (간단한 WBP_PowerButton 작성 또는 ISDK Sample 의 button widget 활용)
+- [ ] **Variables 추가**:
+  - [ ] `TargetLiftgate` — Type: `Liftgate` (Object Reference), Category: `PowerButton`
+  - [ ] Instance Editable: ✓
+  - [ ] Expose On Spawn: ✓
+- [ ] **Event Graph** (parent 의 셋업은 그대로 두고 본 wiring 만 추가):
+  - [ ] Components 패널 → `PokeInteractable` 우클릭 → `Bind Event to Interactor Pointer Event` 또는 parent 의 `InteractorPointerEvent` 재활용
+  - [ ] Event 의 PointerEvent 출력 → `Break Isdk Interaction Pointer Event` 노드
+  - [ ] `Type` 핀 → `Equal (EIsdkPointerEventType)` 노드 → `Select` 비교
+  - [ ] Branch True → `TargetLiftgate` 변수 → `Request Power Open` (`ALiftgate::RequestPowerOpen()`) 호출
+  - [ ] (선택) `Type == Cancel` 의 경우 무시 또는 reset visual
+- [ ] **Parent 의 Debug 무음**:
+  - [ ] BP_PowerButton 의 Class Defaults / Event Graph 에서 parent 의 `Enable Debug Output` flag (BigRedButton 의 Print IsdkPointerEvents 분기 제어) → false 로 set (parent 가 expose 했을 경우)
+- [ ] **시각 / Audio 는 parent 가 자동** — Hover / Select 색상 전이, PokePressCue / PokeReleaseCue 사용 (BigRedButton 의 StateChanged + Setup Pointable Audio 그래프)
+- [ ] (선택) 차량 디자인에 맞춘 visual tweak — BigRedButton 의 `Pointable Plane Size` / mesh material 등 Class Defaults override
 
 ---
 
@@ -226,7 +239,8 @@
 | Final Ranking 버튼 안 잠김 | C++ `IsButtonEnabled(i)` 가 `IsRanked(i)` 의 반대값 반환하는지 |
 | JSON 저장 실패 | Saved/ 디렉토리 권한, FFileHelper return 값, `MakeDirectory(..., true)` 호출 |
 | 세션 reset 안 됨 | ConfirmSession 의 끝에서 phase=Idle 후 StartSession 재호출 |
-| Power button 클릭해도 동작 없음 | BP_PowerButton 의 TargetLiftgate reference 가 spawn 시 set 되는지, button OnClicked → OnButtonClicked → TargetLiftgate.RequestPowerOpen() chain |
+| Power button 클릭해도 동작 없음 | (ADR-012) BP_PowerButton 의 parent 가 `BigRedButton` 인지, Event Graph 의 `Type == Select` 분기가 wired 됐는지, `TargetLiftgate` ref 가 spawn 시 set 됐는지 |
+| BigRedButton 의 색상 / 사운드 피드백 없음 | parent BP 의 `Bind Event to Interactable State Changed` 그래프가 disable 되지 않았는지, dynamic material instance 가 생성됐는지 |
 
 해결 안 되면 `Docs/lessons_learned/<topic>.md` 박제.
 
