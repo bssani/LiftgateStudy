@@ -9,9 +9,17 @@ ALiftgate::ALiftgate()
 	// AutoOpening lerp 가 Tick 에서 동작하므로 활성화
 	PrimaryActorTick.bCanEverTick = true;
 
-	HingePivot = CreateDefaultSubobject<USceneComponent>(TEXT("HingePivot"));
-	RootComponent = HingePivot;
+	// 회전 안 하는 anchor (Meta ISDK GrabbableBox sample 패턴).
+	// root 가 회전 안 해야 HingePivot 의 RelativeLocation/Rotation 이 BP 에서 편집 가능.
+	USceneComponent* DefaultSceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultSceneRoot"));
+	RootComponent = DefaultSceneRoot;
 
+	// Hinge — child 라서 Location / Rotation 편집 가능. ISDK GrabTransformer 가
+	// 이 component 를 회전 대상으로 사용 (IsdkGrabbable 을 HingePivot 자식으로 두면).
+	HingePivot = CreateDefaultSubobject<USceneComponent>(TEXT("HingePivot"));
+	HingePivot->SetupAttachment(RootComponent);
+
+	// Mesh — Hinge 자식, hinge 회전에 따라 swing
 	LiftgateMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LiftgateMesh"));
 	LiftgateMesh->SetupAttachment(HingePivot);
 }
